@@ -11,6 +11,10 @@ export const localeNames: Record<Locale, string> = {
 export const messages = {
   "en": {
     "eyebrow": "Swap-only. Non-custodial. Powered by Vestige Index.",
+    "vigixPriceLabel": "on-chain price",
+    "vigixPriceLoading": "Loading price…",
+    "vigixPriceUnavailable": "Price unavailable",
+    "vigixPriceSource": "Live spot price read from the bonding-curve contract on Polygon.",
     "titleA": "Swap without",
     "titleB": "the noise.",
     "subtitle": "VigiSwap is the fast, polished swap surface for Vestige best-route routing. Connect, quote, approve and swap without distractions.",

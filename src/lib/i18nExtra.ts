@@ -3,6 +3,12 @@
 // language falls back to English. Crypto names (Swap, WalletConnect, RPC, VIGIX)
 // are intentionally kept untranslated.
 export const extra: Record<string, Record<string, string>> = {
+  es: {
+    vigixPriceLabel: "precio on-chain",
+    vigixPriceLoading: "Cargando precio…",
+    vigixPriceUnavailable: "Precio no disponible",
+    vigixPriceSource: "Precio spot en vivo leído del contrato de curva en Polygon.",
+  },
   de: {
     walletConnecting: "Verbinden…",
     walletWrongNetwork: "Falsches Netzwerk",
@@ -25,6 +31,10 @@ export const extra: Record<string, Record<string, string>> = {
     provider: "Anbieter",
     feePolicy: "Richtlinienbasiert",
     priceImpactWarning: "Hohe Preisauswirkung. Du erhältst möglicherweise viel weniger als erwartet.",
+    vigixPriceLabel: "On-Chain-Preis",
+    vigixPriceLoading: "Preis wird geladen…",
+    vigixPriceUnavailable: "Preis nicht verfügbar",
+    vigixPriceSource: "Live-Spotpreis aus dem Bonding-Curve-Vertrag auf Polygon.",
   },
   fr: {
     walletConnecting: "Connexion…",
@@ -48,6 +58,10 @@ export const extra: Record<string, Record<string, string>> = {
     provider: "Fournisseur",
     feePolicy: "Selon la politique",
     priceImpactWarning: "Impact de prix élevé. Vous pourriez recevoir bien moins que prévu.",
+    vigixPriceLabel: "prix on-chain",
+    vigixPriceLoading: "Chargement du prix…",
+    vigixPriceUnavailable: "Prix indisponible",
+    vigixPriceSource: "Prix spot en direct lu depuis le contrat de courbe sur Polygon.",
   },
   it: {
     walletConnecting: "Connessione…",
@@ -71,6 +85,10 @@ export const extra: Record<string, Record<string, string>> = {
     provider: "Provider",
     feePolicy: "In base alla policy",
     priceImpactWarning: "Impatto sul prezzo elevato. Potresti ricevere molto meno del previsto.",
+    vigixPriceLabel: "prezzo on-chain",
+    vigixPriceLoading: "Caricamento prezzo…",
+    vigixPriceUnavailable: "Prezzo non disponibile",
+    vigixPriceSource: "Prezzo spot in tempo reale letto dal contratto a curva su Polygon.",
   },
   pt: {
     walletConnecting: "Conectando…",
@@ -94,6 +112,10 @@ export const extra: Record<string, Record<string, string>> = {
     provider: "Provedor",
     feePolicy: "Conforme a política",
     priceImpactWarning: "Alto impacto no preço. Você pode receber muito menos do que o esperado.",
+    vigixPriceLabel: "preço on-chain",
+    vigixPriceLoading: "Carregando preço…",
+    vigixPriceUnavailable: "Preço indisponível",
+    vigixPriceSource: "Preço spot ao vivo lido do contrato de curva na Polygon.",
   },
   nl: {
     walletConnecting: "Verbinden…",
@@ -117,6 +139,10 @@ export const extra: Record<string, Record<string, string>> = {
     provider: "Aanbieder",
     feePolicy: "Op basis van beleid",
     priceImpactWarning: "Hoge prijsimpact. Je ontvangt mogelijk veel minder dan verwacht.",
+    vigixPriceLabel: "on-chain prijs",
+    vigixPriceLoading: "Prijs laden…",
+    vigixPriceUnavailable: "Prijs niet beschikbaar",
+    vigixPriceSource: "Live spotprijs gelezen uit het bonding-curve-contract op Polygon.",
   },
   ar: {
     walletConnecting: "جارٍ الاتصال…",
@@ -140,6 +166,10 @@ export const extra: Record<string, Record<string, string>> = {
     provider: "المزوّد",
     feePolicy: "وفقًا للسياسة",
     priceImpactWarning: "تأثير كبير على السعر. قد تتلقى أقل بكثير من المتوقع.",
+    vigixPriceLabel: "السعر على السلسلة",
+    vigixPriceLoading: "جارٍ تحميل السعر…",
+    vigixPriceUnavailable: "السعر غير متاح",
+    vigixPriceSource: "السعر الفوري المباشر يُقرأ من عقد المنحنى على Polygon.",
   },
   zh: {
     walletConnecting: "连接中…",
@@ -163,6 +193,10 @@ export const extra: Record<string, Record<string, string>> = {
     provider: "提供方",
     feePolicy: "基于策略",
     priceImpactWarning: "价格影响较大，您收到的可能远少于预期。",
+    vigixPriceLabel: "链上价格",
+    vigixPriceLoading: "正在加载价格…",
+    vigixPriceUnavailable: "价格不可用",
+    vigixPriceSource: "实时现货价格，读取自 Polygon 上的联合曲线合约。",
   },
   ja: {
     walletConnecting: "接続中…",
@@ -186,6 +220,10 @@ export const extra: Record<string, Record<string, string>> = {
     provider: "プロバイダー",
     feePolicy: "ポリシーに基づく",
     priceImpactWarning: "価格影響が大きいです。予想より大幅に少なく受け取る可能性があります。",
+    vigixPriceLabel: "オンチェーン価格",
+    vigixPriceLoading: "価格を読み込み中…",
+    vigixPriceUnavailable: "価格を取得できません",
+    vigixPriceSource: "Polygon のボンディングカーブ契約から読み取ったライブのスポット価格。",
   },
   ko: {
     walletConnecting: "연결 중…",
@@ -209,6 +247,10 @@ export const extra: Record<string, Record<string, string>> = {
     provider: "공급자",
     feePolicy: "정책 기반",
     priceImpactWarning: "가격 영향이 큽니다. 예상보다 훨씬 적게 받을 수 있습니다.",
+    vigixPriceLabel: "온체인 가격",
+    vigixPriceLoading: "가격 불러오는 중…",
+    vigixPriceUnavailable: "가격을 사용할 수 없음",
+    vigixPriceSource: "Polygon의 본딩 커브 컨트랙트에서 읽은 실시간 현물 가격.",
   },
   ru: {
     walletConnecting: "Подключение…",
@@ -232,6 +274,10 @@ export const extra: Record<string, Record<string, string>> = {
     provider: "Провайдер",
     feePolicy: "По политике",
     priceImpactWarning: "Высокое влияние на цену. Вы можете получить намного меньше, чем ожидалось.",
+    vigixPriceLabel: "цена в сети",
+    vigixPriceLoading: "Загрузка цены…",
+    vigixPriceUnavailable: "Цена недоступна",
+    vigixPriceSource: "Текущая спотовая цена считывается из контракта кривой на Polygon.",
   },
   tr: {
     walletConnecting: "Bağlanıyor…",
@@ -255,6 +301,10 @@ export const extra: Record<string, Record<string, string>> = {
     provider: "Sağlayıcı",
     feePolicy: "Politikaya dayalı",
     priceImpactWarning: "Yüksek fiyat etkisi. Beklenenden çok daha az alabilirsiniz.",
+    vigixPriceLabel: "zincir üstü fiyat",
+    vigixPriceLoading: "Fiyat yükleniyor…",
+    vigixPriceUnavailable: "Fiyat kullanılamıyor",
+    vigixPriceSource: "Polygon üzerindeki eğri sözleşmesinden okunan canlı spot fiyat.",
   },
   hi: {
     walletConnecting: "कनेक्ट हो रहा है…",
@@ -278,6 +328,10 @@ export const extra: Record<string, Record<string, string>> = {
     provider: "प्रदाता",
     feePolicy: "नीति-आधारित",
     priceImpactWarning: "उच्च मूल्य प्रभाव। आपको अपेक्षा से बहुत कम मिल सकता है।",
+    vigixPriceLabel: "ऑन-चेन मूल्य",
+    vigixPriceLoading: "मूल्य लोड हो रहा है…",
+    vigixPriceUnavailable: "मूल्य अनुपलब्ध",
+    vigixPriceSource: "Polygon पर बॉन्डिंग-कर्व अनुबंध से पढ़ा गया लाइव स्पॉट मूल्य।",
   },
   id: {
     walletConnecting: "Menghubungkan…",
@@ -301,6 +355,10 @@ export const extra: Record<string, Record<string, string>> = {
     provider: "Penyedia",
     feePolicy: "Berdasarkan kebijakan",
     priceImpactWarning: "Dampak harga tinggi. Anda mungkin menerima jauh lebih sedikit dari yang diharapkan.",
+    vigixPriceLabel: "harga on-chain",
+    vigixPriceLoading: "Memuat harga…",
+    vigixPriceUnavailable: "Harga tidak tersedia",
+    vigixPriceSource: "Harga spot langsung dibaca dari kontrak kurva di Polygon.",
   },
   pl: {
     walletConnecting: "Łączenie…",
@@ -324,5 +382,9 @@ export const extra: Record<string, Record<string, string>> = {
     provider: "Dostawca",
     feePolicy: "Według zasad",
     priceImpactWarning: "Wysoki wpływ na cenę. Możesz otrzymać znacznie mniej niż oczekiwano.",
+    vigixPriceLabel: "cena on-chain",
+    vigixPriceLoading: "Ładowanie ceny…",
+    vigixPriceUnavailable: "Cena niedostępna",
+    vigixPriceSource: "Aktualna cena spot odczytana z kontraktu krzywej na Polygon.",
   },
 };
