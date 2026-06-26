@@ -1,0 +1,4 @@
+Contact: mailto:security@vigiswap.com
+Preferred-Languages: en, es
+Canonical: https://vigiswap.com/security.txt
+Policy: https://vigiswap.com/risk

@@ -1,0 +1,17 @@
+<svg width="240" height="240" viewBox="0 0 240 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="vigixGoldA" x1="36" y1="28" x2="210" y2="208" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF2B8"/>
+      <stop offset="0.42" stop-color="#F4C65A"/>
+      <stop offset="0.72" stop-color="#D9962E"/>
+      <stop offset="1" stop-color="#8F5517"/>
+    </linearGradient>
+    <linearGradient id="vigixGoldB" x1="96" y1="58" x2="182" y2="214" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF6C7"/>
+      <stop offset="0.5" stop-color="#DFA03A"/>
+      <stop offset="1" stop-color="#8C4D13"/>
+    </linearGradient>
+  </defs>
+  <path d="M46 64C46 53.5066 54.5066 45 65 45H85.1263L119.774 79.0565L154.066 45H173.5L192.5 64L146.5 110.5L120.5 136.5L94.5 110.5L72 88V157.5L120.5 206L168 157.5V139.5L120.5 187L88 154.5V130L120.5 162.5L174.5 108.5L194 128V165.071C194 170.11 191.999 174.942 188.439 178.505L139.005 227.939C131.193 235.752 118.526 235.752 110.713 227.939L51.5612 168.787C48.0009 165.225 46 160.392 46 155.353V64Z" fill="url(#vigixGoldA)"/>
+  <path d="M175 46C186.598 46 196 55.402 196 67C196 78.598 186.598 88 175 88C163.402 88 154 78.598 154 67C154 55.402 163.402 46 175 46Z" fill="url(#vigixGoldB)"/>
+</svg>

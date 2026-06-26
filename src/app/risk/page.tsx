@@ -1,0 +1,1 @@
+import { LegalPage } from "@/components/LegalPage"; import { legalText } from "@/lib/legal"; export default function Page(){ return <LegalPage kind="risk" content={legalText.risk}/> }
