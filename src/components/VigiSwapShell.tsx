@@ -36,7 +36,12 @@ export function VigiSwapShell() {
         <header className="topbar">
           <BrandMark />
           <div className="top-actions">
-            <a className="pill pill-quiet" href="https://vestigeindex.com" target="_blank" rel="noreferrer">{t.powered}</a>
+            <a className="nav-vestige" href="https://www.vestigeindex.com" target="_blank" rel="noreferrer" title={t.powered}>
+              <span>{t.openVestige}</span>
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M7 17L17 7M9 7h8v8" />
+              </svg>
+            </a>
             <LanguageSelect locale={locale} onChange={changeLocale} />
             <WalletButton t={t} />
           </div>

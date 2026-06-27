@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { formatUnits, parseUnits, erc20Abi, maxUint256, type Address } from "viem";
+import { formatUnits, parseUnits, erc20Abi, type Address } from "viem";
 import { useAccount, useBalance, useChainId, useReadContract, useSwitchChain } from "wagmi";
 import { readContract, sendTransaction, writeContract, waitForTransactionReceipt } from "wagmi/actions";
 import { CHAINS } from "@/lib/chains";
@@ -12,6 +12,8 @@ import { wagmiConfig, PROJECT_ID_VALID, openAppKit } from "@/lib/wallet";
 import { getVestigeQuote, type NormalizedRoute } from "@/lib/vestigeApiClient";
 import { getProviderComparison, type ComparisonQuote } from "@/lib/aggregators";
 import { PLATFORM_FEE_BPS, feeLabel } from "@/lib/fees";
+import { analyzeSwap } from "@/lib/security/securityCore";
+import { SafeSign } from "./SafeSign";
 import { ChainSelector } from "./ChainSelector";
 import { TokenSelector } from "./TokenSelector";
 import { TransactionTimeline, type TxStage } from "./TransactionTimeline";
@@ -134,6 +136,22 @@ export function SwapCard({ t }: { t: Messages }) {
   const wrongNetwork = isConnected && Number(chainId) !== chain.id;
   const highImpact = (route?.priceImpactPct ?? 0) < -8;
 
+  // UTXO Safe Sign review of the pending swap (recomputed whenever the route changes).
+  const safeSign = useMemo(() => {
+    if (!route) return null;
+    return analyzeSwap({
+      tokenSymbol: fromToken.symbol,
+      tokenName: fromToken.name,
+      isNative: isNative(fromToken.address),
+      approvalAddress: route.approvalAddress,
+      unlimitedApproval: false, // we always approve the exact amount
+      priceImpactPct: route.priceImpactPct,
+      recipientIsSelf: Boolean(address),
+      routeProvider: route.provider,
+      hasExecutableTx: Boolean(route.transactionRequest?.to),
+    });
+  }, [route, fromToken.symbol, fromToken.name, fromToken.address, address]);
+
   const execute = useCallback(async () => {
     if (!route || !address) return;
     setError(null);
@@ -154,11 +172,12 @@ export function SwapCard({ t }: { t: Messages }) {
         })) as bigint;
         if (allowance < amountWei) {
           setStage("approving");
+          // UTXO Safe Sign: approve the EXACT trade amount, never unlimited (maxUint256).
           const approveHash = await writeContract(wagmiConfig, {
             address: fromToken.address as Address,
             abi: erc20Abi,
             functionName: "approve",
-            args: [route.approvalAddress as Address, maxUint256],
+            args: [route.approvalAddress as Address, amountWei],
             chainId: chain.id,
           });
           await waitForTransactionReceipt(wagmiConfig, { hash: approveHash, chainId: chain.id });
@@ -219,6 +238,9 @@ export function SwapCard({ t }: { t: Messages }) {
     primaryDisabled = true;
   } else if (stage === "approving" || stage === "swapping" || stage === "pending") {
     primaryLabel = t.txPending;
+    primaryDisabled = true;
+  } else if (safeSign?.decision === "block") {
+    primaryLabel = t.safeSignBlock;
     primaryDisabled = true;
   } else if (highImpact) {
     primaryLabel = t.swapAnyway;
@@ -288,6 +310,8 @@ export function SwapCard({ t }: { t: Messages }) {
           </div>
         </div>
       ) : null}
+
+      {safeSign ? <SafeSign t={t} review={safeSign} /> : null}
 
       <button className="primary-button" disabled={primaryDisabled} onClick={primaryAction}>{primaryLabel}</button>
 

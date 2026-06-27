@@ -1,9 +1,8 @@
-// VigiSwap network catalog — mirrors VestigeIndex's MARKET_SUPPORTED_CHAINS so both
-// products share the exact same universe (VigiSwap is the swap-only "lite"). Logos are
-// reused from vestigeindex.com (CSP img-src allows https:). `lifiId` is the id the
-// routing engine (LI.FI) expects: identical to the EVM chainId, except Bitcoin which is
-// LI.FI's UTXO chain id 20000000000001. `isEvm:false` chains can't use an EVM wallet as
-// the source and only participate as cross-chain destinations.
+// VigiSwap network catalog — the EVM swap universe, mirroring VestigeIndex's supported EVM
+// chains so both products share the same networks (VigiSwap is the mobile-first, swap-only
+// surface; deeper BTC/cross-chain tooling lives on vestigeindex.com). Logos are reused from
+// vestigeindex.com (CSP img-src allows https:). `lifiId` is the id the routing engine (LI.FI)
+// expects — identical to the EVM chainId here. `isEvm` is kept for forward-compat.
 
 export type ChainConfig = {
   id: number;
@@ -17,7 +16,6 @@ export type ChainConfig = {
 };
 
 const VI = "https://www.vestigeindex.com";
-const BTC_LIFI_ID = 20000000000001;
 
 export const CHAINS: ChainConfig[] = [
   { id: 1, name: "Ethereum", shortName: "ETH", nativeCurrency: "ETH", logoURI: `${VI}/logos/networks/ethereum.svg`, explorerUrl: "https://etherscan.io", lifiId: 1, isEvm: true },
@@ -35,7 +33,6 @@ export const CHAINS: ChainConfig[] = [
   { id: 59144, name: "Linea", shortName: "LINEA", nativeCurrency: "ETH", logoURI: `${VI}/logos/networks/linea.svg`, explorerUrl: "https://lineascan.build", lifiId: 59144, isEvm: true },
   { id: 534352, name: "Scroll", shortName: "SCRL", nativeCurrency: "ETH", logoURI: `${VI}/logos/networks/scroll.svg`, explorerUrl: "https://scrollscan.com", lifiId: 534352, isEvm: true },
   { id: 202555, name: "Kasplex zkEVM", shortName: "KAS", nativeCurrency: "KAS", logoURI: "https://assets.coingecko.com/coins/images/25789/small/kaspa-icon-exchanges.png", explorerUrl: "https://explorer.kasplex.org", lifiId: 202555, isEvm: true },
-  { id: 8332, name: "Bitcoin", shortName: "BTC", nativeCurrency: "BTC", logoURI: `${VI}/logos/tokens/btc.png`, explorerUrl: "https://mempool.space", lifiId: BTC_LIFI_ID, isEvm: false },
 ];
 
 export const EVM_CHAINS = CHAINS.filter((c) => c.isEvm);
