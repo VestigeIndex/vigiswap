@@ -9,8 +9,7 @@ import { tokensForChain, type TokenConfig } from "@/lib/tokens";
 import { VIGIX } from "@/lib/vigix";
 import { useVigixPrice } from "@/lib/useVigixPrice";
 import { wagmiConfig, PROJECT_ID_VALID, openAppKit } from "@/lib/wallet";
-import { getVestigeQuote, type NormalizedRoute } from "@/lib/vestigeApiClient";
-import { getProviderComparison, type ComparisonQuote } from "@/lib/aggregators";
+import { getBestRoute, fetchOkxApprovalSpender, fetchOkxSwapTx, type EngineQuote } from "@/lib/engines";
 import { PLATFORM_FEE_BPS, feeLabel } from "@/lib/fees";
 import { analyzeSwap } from "@/lib/security/securityCore";
 import { SafeSign } from "./SafeSign";
@@ -56,8 +55,8 @@ export function SwapCard({ t }: { t: Messages }) {
   const crossChain = chain.id !== toChain.id;
   const toIsBtc = toChain.id === 8332;
 
-  const [route, setRoute] = useState<NormalizedRoute | null>(null);
-  const [comparison, setComparison] = useState<ComparisonQuote[]>([]);
+  const [route, setRoute] = useState<EngineQuote | null>(null);
+  const [engines, setEngines] = useState<EngineQuote[]>([]);
   const [quoting, setQuoting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [stage, setStage] = useState<TxStage>("idle");
@@ -70,7 +69,7 @@ export function SwapCard({ t }: { t: Messages }) {
     setChain(next);
     setFromToken(nextTokens.find((x) => x.symbol === "USDC") || nextTokens[0]);
     setRoute(null);
-    setComparison([]);
+    setEngines([]);
     setError(null);
   }
 
@@ -79,17 +78,18 @@ export function SwapCard({ t }: { t: Messages }) {
     setToChain(next);
     setToToken(nextTokens.find((x) => x.symbol === "VIGIX") || nextTokens[0]);
     setRoute(null);
-    setComparison([]);
+    setEngines([]);
     setError(null);
   }
 
-  // Debounced real quote. Cancels stale requests via a sequence guard.
+  // Debounced real quote. Runs both engines (LI.FI + OKX), picks the best, and lists both.
+  // Cancels stale requests via a sequence guard.
   useEffect(() => {
     const parsed = Number(amount);
     const samePair = chain.id === toChain.id && fromToken.address === toToken.address;
     if (!amount || !Number.isFinite(parsed) || parsed <= 0 || samePair) {
       setRoute(null);
-      setComparison([]);
+      setEngines([]);
       setError(null);
       setQuoting(false);
       return;
@@ -102,36 +102,27 @@ export function SwapCard({ t }: { t: Messages }) {
         const amountWei = parseUnits(amount, fromToken.decimals).toString();
         // BTC destination needs a BTC receive address; fall back to the wallet for EVM dests.
         const destAddress = toIsBtc ? (btcAddress.trim() || undefined) : address;
-        const result = await getVestigeQuote({
-          chainId: chain.lifiId,
-          toChainId: toChain.lifiId,
+        const result = await getBestRoute({
+          fromChainId: chain.id,
+          toChainId: toChain.id,
+          fromLifiId: chain.lifiId,
+          toLifiId: toChain.lifiId,
           fromToken: isNative(fromToken.address) ? NATIVE_LIFI : fromToken.address,
           toToken: isNative(toToken.address) ? NATIVE_LIFI : toToken.address,
-          amount: amountWei,
+          amountWei,
           slippageBps,
           recipient: address,
           destAddress,
+          crossChain,
         });
         if (seq !== quoteSeq.current) return;
-        setRoute(result.bestRoute);
-        if (!result.bestRoute) setError(t.quoteUnavailable);
-        // Cross-aggregator comparison (ParaSwap/Odos) only applies to same-chain swaps.
-        if (!crossChain) {
-          getProviderComparison({
-            chainId: chain.lifiId,
-            fromToken: isNative(fromToken.address) ? NATIVE_LIFI : fromToken.address,
-            toToken: isNative(toToken.address) ? NATIVE_LIFI : toToken.address,
-            fromDecimals: fromToken.decimals,
-            toDecimals: toToken.decimals,
-            amountWei,
-            recipient: address,
-          }).then((cmp) => { if (seq === quoteSeq.current) setComparison(cmp); });
-        } else {
-          setComparison([]);
-        }
+        setRoute(result.best);
+        setEngines(result.engines);
+        if (!result.best) setError(result.error || t.quoteUnavailable);
       } catch (e) {
         if (seq !== quoteSeq.current) return;
         setRoute(null);
+        setEngines([]);
         setError((e as Error)?.message || t.quoteUnavailable);
       } finally {
         if (seq === quoteSeq.current) setQuoting(false);
@@ -172,8 +163,9 @@ export function SwapCard({ t }: { t: Messages }) {
       unlimitedApproval: false, // we always approve the exact amount
       priceImpactPct: route.priceImpactPct,
       recipientIsSelf: Boolean(address),
-      routeProvider: route.provider,
-      hasExecutableTx: Boolean(route.transactionRequest?.to),
+      routeProvider: `${route.engine} · ${route.provider}`,
+      // OKX builds its tx at execute time; a successful quote means it's executable.
+      hasExecutableTx: route.engine === "OKX" || Boolean(route.transactionRequest?.to),
     });
   }, [route, fromToken.symbol, fromToken.name, fromToken.address, address]);
 
@@ -185,14 +177,22 @@ export function SwapCard({ t }: { t: Messages }) {
       if (Number(chainId) !== chain.id) {
         await switchChainAsync({ chainId: chain.id });
       }
+      const amountWei = parseUnits(amount, fromToken.decimals);
+
+      // Resolve the ERC-20 spender to approve. LI.FI exposes it on the route; OKX returns
+      // its router from the signed approve-transaction endpoint.
+      let spender = route.approvalAddress;
+      if (route.engine === "OKX" && route.okx && !isNative(fromToken.address)) {
+        spender = (await fetchOkxApprovalSpender(route.okx)) ?? undefined;
+      }
+
       // Approval (skip for native).
-      if (!isNative(fromToken.address) && route.approvalAddress) {
-        const amountWei = parseUnits(amount, fromToken.decimals);
+      if (!isNative(fromToken.address) && spender) {
         const allowance = (await readContract(wagmiConfig, {
           address: fromToken.address as Address,
           abi: erc20Abi,
           functionName: "allowance",
-          args: [address as Address, route.approvalAddress as Address],
+          args: [address as Address, spender as Address],
           chainId: chain.id,
         })) as bigint;
         if (allowance < amountWei) {
@@ -202,26 +202,37 @@ export function SwapCard({ t }: { t: Messages }) {
             address: fromToken.address as Address,
             abi: erc20Abi,
             functionName: "approve",
-            args: [route.approvalAddress as Address, amountWei],
+            args: [spender as Address, amountWei],
             chainId: chain.id,
           });
           await waitForTransactionReceipt(wagmiConfig, { hash: approveHash, chainId: chain.id });
         }
       }
 
-      const tx = route.transactionRequest;
-      if (!tx || !tx.to) {
-        setStage("idle");
-        setError(t.quoteExpired);
-        return;
+      // Build the executable transaction for the winning engine.
+      let to: Address;
+      let data: `0x${string}` | undefined;
+      let value: bigint | undefined;
+      if (route.engine === "OKX" && route.okx) {
+        setStage("swapping");
+        const tx = await fetchOkxSwapTx(route.okx, address);
+        to = tx.to as Address;
+        data = (tx.data as `0x${string}`) ?? undefined;
+        value = tx.value ? BigInt(tx.value) : undefined;
+      } else {
+        const tx = route.transactionRequest;
+        if (!tx || !tx.to) {
+          setStage("idle");
+          setError(t.quoteExpired);
+          return;
+        }
+        setStage("swapping");
+        to = tx.to as Address;
+        data = (tx.data as `0x${string}`) ?? undefined;
+        value = tx.value ? BigInt(tx.value as string) : undefined;
       }
-      setStage("swapping");
-      const hash = await sendTransaction(wagmiConfig, {
-        to: tx.to as Address,
-        data: (tx.data as `0x${string}`) ?? undefined,
-        value: tx.value ? BigInt(tx.value as string) : undefined,
-        chainId: chain.id,
-      });
+
+      const hash = await sendTransaction(wagmiConfig, { to, data, value, chainId: chain.id });
       setTxHash(hash);
       setStage("pending");
       const receipt = await waitForTransactionReceipt(wagmiConfig, { hash, chainId: chain.id });
@@ -283,7 +294,7 @@ export function SwapCard({ t }: { t: Messages }) {
           <strong>{t.swap}</strong>
           <span>
             {t.bestRoute}
-            {route ? <span className="best-badge"><span className="best-dot" aria-hidden="true" />{route.provider}</span> : null}
+            {route ? <span className="best-badge"><span className="best-dot" aria-hidden="true" />{route.engine}</span> : null}
           </span>
         </div>
       </div>
@@ -315,7 +326,7 @@ export function SwapCard({ t }: { t: Messages }) {
             const a = fromToken; const ac = chain;
             setChain(toChain); setToChain(ac);
             setFromToken(toToken); setToToken(a);
-            setAmount(""); setRoute(null); setComparison([]);
+            setAmount(""); setRoute(null); setEngines([]);
           }}>↓</button>
       </div>
 
@@ -342,7 +353,7 @@ export function SwapCard({ t }: { t: Messages }) {
       <div className="settings-row">
         <div className="inline-settings">
           <span className="mini-badge">{t.slippage}: {(slippageBps / 100).toFixed(2)}%</span>
-          <span className="mini-badge">{t.route}: {route?.provider ?? "Vestige"}</span>
+          <span className="mini-badge">{t.route}: {route ? `${route.engine} · ${route.provider}` : "Auto"}</span>
         </div>
         <button className="icon-button" aria-label={t.settings} onClick={() => setShowSettings((v) => !v)}>⚙</button>
       </div>
@@ -367,7 +378,7 @@ export function SwapCard({ t }: { t: Messages }) {
       {highImpact && route ? <p className="swap-warn">{t.priceImpactWarning}</p> : null}
 
       <div className={`route-card${quoting ? " is-loading" : ""}`}>
-        <div className="route-row"><span>{t.provider}</span><strong>{route?.provider ?? "—"}</strong></div>
+        <div className="route-row"><span>{t.provider}</span><strong>{route ? `${route.engine} · ${route.provider}` : "—"}</strong></div>
         <div className="route-row"><span>{t.minimumReceived}</span><strong>{route ? `${fmt(route.toAmountMin, toToken.decimals)} ${toToken.symbol}` : "—"}</strong></div>
         <div className="route-row"><span>{t.priceImpact}</span><strong>{route?.priceImpactPct != null ? `${route.priceImpactPct.toFixed(2)}%` : "—"}</strong></div>
         <div className="route-row"><span>{t.gas}</span><strong>{route?.gasUsd ? `$${Number(route.gasUsd).toFixed(2)}` : "—"}</strong></div>
@@ -375,24 +386,20 @@ export function SwapCard({ t }: { t: Messages }) {
         <div className="route-row"><span>{t.platformFee}</span><strong>{feeLabel(PLATFORM_FEE_BPS)}</strong></div>
       </div>
 
-      {route && comparison.length > 0 ? (
+      {route && engines.length > 1 ? (
         <div className="provider-compare">
           <h4>{t.bestPriceAcross}</h4>
           {(() => {
-            const rows = [
-              { provider: "LI.FI", outputWei: route.outputAmount, executable: true, via: route.provider },
-              ...comparison.map((c) => ({ provider: c.provider, outputWei: c.outputWei, executable: false, via: c.via })),
-            ];
             let bestWei = 0n;
-            for (const r of rows) { try { const v = BigInt(r.outputWei || "0"); if (v > bestWei) bestWei = v; } catch { /* skip */ } }
-            return rows.map((r) => {
+            for (const r of engines) { try { const v = BigInt(r.outputAmount || "0"); if (v > bestWei) bestWei = v; } catch { /* skip */ } }
+            return engines.map((r) => {
               let isBest = false;
-              try { isBest = BigInt(r.outputWei || "0") === bestWei && bestWei > 0n; } catch { /* skip */ }
+              try { isBest = BigInt(r.outputAmount || "0") === bestWei && bestWei > 0n; } catch { /* skip */ }
               return (
-                <div key={r.provider} className={`provider-row${isBest ? " best" : ""}`}>
-                  <span>{r.provider}{r.via && r.via !== r.provider ? ` · ${r.via}` : ""}{r.executable ? "" : ` · ${t.compareOnly}`}</span>
+                <div key={r.engine} className={`provider-row${isBest ? " best" : ""}`}>
+                  <span>{r.engine}{r.provider && r.provider !== r.engine ? ` · ${r.provider}` : ""}</span>
                   <strong>
-                    {fmt(r.outputWei, toToken.decimals)} {toToken.symbol}
+                    {fmt(r.outputAmount, toToken.decimals)} {toToken.symbol}
                     {isBest ? <span className="pill">{t.best}</span> : null}
                   </strong>
                 </div>

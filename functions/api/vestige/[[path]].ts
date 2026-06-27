@@ -23,11 +23,6 @@ const ROUTES: Record<string, Upstream> = {
   "lifi/tokens": { url: "https://li.quest/v1/tokens", method: "GET", keyEnv: "LIFI_API_KEY", keyHeader: "x-lifi-api-key", forwardQuery: true, cache: "public, max-age=1800, stale-while-revalidate=3600" },
   "lifi/chains": { url: "https://li.quest/v1/chains", method: "GET", keyEnv: "LIFI_API_KEY", keyHeader: "x-lifi-api-key", forwardQuery: true, cache: "public, max-age=3600" },
   "lifi/quote": { url: "https://li.quest/v1/quote", method: "GET", keyEnv: "LIFI_API_KEY", keyHeader: "x-lifi-api-key", forwardQuery: true, cache: "no-store" },
-  // Keyless aggregators used for explicit cross-provider price comparison (ParaSwap is
-  // the network now branded Velora; Odos is intent-based). 1inch/0x need API keys and are
-  // already routed through by LI.FI under the hood, so they're not called directly here.
-  "paraswap/prices": { url: "https://apiv5.paraswap.io/prices", method: "GET", forwardQuery: true, cache: "no-store" },
-  "odos/quote": { url: "https://api.odos.io/sor/quote/v2", method: "POST", cache: "no-store" },
 };
 
 const CORS = {

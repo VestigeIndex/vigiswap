@@ -73,7 +73,7 @@ export function VigiSwapShell() {
         <Promoters t={t} />
 
         <footer className="footer">
-          <span>© 2026 VigiSwap · UTXO Labs</span>
+          <span>© 2026 VigiSwap · a VestigeIndex product · UTXO Labs &amp; Huris S&amp;C</span>
           <div className="footer-links">
             <a href="/privacy">{t.privacy}</a>
             <a href="/cookies">{t.cookies}</a>

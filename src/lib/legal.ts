@@ -20,6 +20,8 @@ export const legalText = {
     title: "Terms of Use",
     body: [
       "VigiSwap provides a non-custodial interface for swaps routed by Vestige Index APIs.",
+      "VigiSwap (vigiswap.com) is a product of VestigeIndex (vestigeindex.com), which is part of UTXO Suite (utxosuite.com). The VigiSwap, VestigeIndex and UTXO Suite brands, together with affiliated products including Idovio (idovio.com), Regikaha (regikaha.com) and Regitrámites (regitramites.com), are ultimately owned and operated by UTXO Labs and Huris S&C. All trademarks, logos and rights are reserved by their respective owners within this group.",
+      "A platform fee of 0.10% is applied to swaps and accrues to the operator; routing aggregators may also apply their own protocol fees, which are reflected in the quoted route.",
       "Users are responsible for reviewing token addresses, route details, slippage, fees and wallet confirmations.",
       "VigiSwap never guarantees profits, future token prices or market outcomes.",
       "VIGIX must be presented as a platform token with contract-defined curve pricing, not as speculative investment marketing."

@@ -12,8 +12,11 @@ export const BTC_FEE_ADDRESS = "bc1qlv9cvcfm4m09uzw725e82xuudv6q3zpxqw9x7n";
 export const LIFI_INTEGRATOR = "Vestige-Index";
 export const ENABLE_LIFI_FEES = true;
 
-// Routed EVM execution fee: 5 bps (0.05%). THORChain/BTC: 10 bps (0.10%).
-export const ROUTED_EVM_FEE_BPS = 5;
+// VigiSwap general platform fee: 10 bps (0.10%) on every swap — same fee SYSTEM/wallet as
+// VestigeIndex, but VigiSwap's own general norm is 0.10% (VestigeIndex routes at 0.05%).
+// Still far below Uniswap's 0.25% interface fee, so VigiSwap stays the more competitive venue.
+// The underlying aggregators (LI.FI/OKX) also take their own protocol fee on their side.
+export const ROUTED_EVM_FEE_BPS = 10;
 export const THORCHAIN_FEE_BPS = 10;
 export const PLATFORM_FEE_BPS = ROUTED_EVM_FEE_BPS;
 
