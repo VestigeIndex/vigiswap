@@ -15,23 +15,24 @@ export type ChainConfig = {
   isEvm: boolean;
 };
 
-const VI = "https://www.vestigeindex.com";
+// Official chain artwork from LI.FI's verified icon set (real logos, no placeholders).
+const LF = "https://raw.githubusercontent.com/lifinance/types/main/src/assets/icons/chains";
 
 export const CHAINS: ChainConfig[] = [
-  { id: 1, name: "Ethereum", shortName: "ETH", nativeCurrency: "ETH", logoURI: `${VI}/logos/networks/ethereum.svg`, explorerUrl: "https://etherscan.io", lifiId: 1, isEvm: true },
-  { id: 137, name: "Polygon", shortName: "POL", nativeCurrency: "POL", logoURI: `${VI}/logos/networks/polygon.svg`, explorerUrl: "https://polygonscan.com", lifiId: 137, isEvm: true },
-  { id: 56, name: "BNB Chain", shortName: "BNB", nativeCurrency: "BNB", logoURI: `${VI}/logos/networks/bnb-chain.svg`, explorerUrl: "https://bscscan.com", lifiId: 56, isEvm: true },
-  { id: 42161, name: "Arbitrum", shortName: "ARB", nativeCurrency: "ETH", logoURI: `${VI}/logos/networks/arbitrum.svg`, explorerUrl: "https://arbiscan.io", lifiId: 42161, isEvm: true },
-  { id: 10, name: "Optimism", shortName: "OP", nativeCurrency: "ETH", logoURI: `${VI}/logos/networks/optimism.svg`, explorerUrl: "https://optimistic.etherscan.io", lifiId: 10, isEvm: true },
-  { id: 8453, name: "Base", shortName: "BASE", nativeCurrency: "ETH", logoURI: `${VI}/logos/networks/base.svg`, explorerUrl: "https://basescan.org", lifiId: 8453, isEvm: true },
-  { id: 43114, name: "Avalanche", shortName: "AVAX", nativeCurrency: "AVAX", logoURI: `${VI}/logos/networks/avalanche.svg`, explorerUrl: "https://snowtrace.io", lifiId: 43114, isEvm: true },
-  { id: 25, name: "Cronos", shortName: "CRO", nativeCurrency: "CRO", logoURI: `${VI}/logos/networks/cronos.svg`, explorerUrl: "https://cronoscan.com", lifiId: 25, isEvm: true },
-  { id: 100, name: "Gnosis", shortName: "GNO", nativeCurrency: "XDAI", logoURI: `${VI}/logos/networks/gnosis.svg`, explorerUrl: "https://gnosisscan.io", lifiId: 100, isEvm: true },
+  { id: 1, name: "Ethereum", shortName: "ETH", nativeCurrency: "ETH", logoURI: `${LF}/ethereum.svg`, explorerUrl: "https://etherscan.io", lifiId: 1, isEvm: true },
+  { id: 137, name: "Polygon", shortName: "POL", nativeCurrency: "POL", logoURI: `${LF}/polygon.svg`, explorerUrl: "https://polygonscan.com", lifiId: 137, isEvm: true },
+  { id: 56, name: "BNB Chain", shortName: "BNB", nativeCurrency: "BNB", logoURI: `${LF}/bsc.svg`, explorerUrl: "https://bscscan.com", lifiId: 56, isEvm: true },
+  { id: 42161, name: "Arbitrum", shortName: "ARB", nativeCurrency: "ETH", logoURI: `${LF}/arbitrum.svg`, explorerUrl: "https://arbiscan.io", lifiId: 42161, isEvm: true },
+  { id: 10, name: "Optimism", shortName: "OP", nativeCurrency: "ETH", logoURI: `${LF}/optimism.svg`, explorerUrl: "https://optimistic.etherscan.io", lifiId: 10, isEvm: true },
+  { id: 8453, name: "Base", shortName: "BASE", nativeCurrency: "ETH", logoURI: `${LF}/base.svg`, explorerUrl: "https://basescan.org", lifiId: 8453, isEvm: true },
+  { id: 43114, name: "Avalanche", shortName: "AVAX", nativeCurrency: "AVAX", logoURI: `${LF}/avalanche.svg`, explorerUrl: "https://snowtrace.io", lifiId: 43114, isEvm: true },
+  { id: 25, name: "Cronos", shortName: "CRO", nativeCurrency: "CRO", logoURI: `${LF}/cronos.svg`, explorerUrl: "https://cronoscan.com", lifiId: 25, isEvm: true },
+  { id: 100, name: "Gnosis", shortName: "GNO", nativeCurrency: "XDAI", logoURI: `${LF}/gnosis.svg`, explorerUrl: "https://gnosisscan.io", lifiId: 100, isEvm: true },
   { id: 250, name: "Fantom", shortName: "FTM", nativeCurrency: "FTM", logoURI: "https://assets.coingecko.com/coins/images/4001/small/Fantom_round.png", explorerUrl: "https://ftmscan.com", lifiId: 250, isEvm: true },
-  { id: 324, name: "zkSync Era", shortName: "ZK", nativeCurrency: "ETH", logoURI: `${VI}/logos/networks/zksync.svg`, explorerUrl: "https://era.zksync.network", lifiId: 324, isEvm: true },
-  { id: 5000, name: "Mantle", shortName: "MNT", nativeCurrency: "MNT", logoURI: `${VI}/logos/networks/mantle.svg`, explorerUrl: "https://mantlescan.xyz", lifiId: 5000, isEvm: true },
-  { id: 59144, name: "Linea", shortName: "LINEA", nativeCurrency: "ETH", logoURI: `${VI}/logos/networks/linea.svg`, explorerUrl: "https://lineascan.build", lifiId: 59144, isEvm: true },
-  { id: 534352, name: "Scroll", shortName: "SCRL", nativeCurrency: "ETH", logoURI: `${VI}/logos/networks/scroll.svg`, explorerUrl: "https://scrollscan.com", lifiId: 534352, isEvm: true },
+  { id: 324, name: "zkSync Era", shortName: "ZK", nativeCurrency: "ETH", logoURI: `${LF}/zksync.svg`, explorerUrl: "https://era.zksync.network", lifiId: 324, isEvm: true },
+  { id: 5000, name: "Mantle", shortName: "MNT", nativeCurrency: "MNT", logoURI: `${LF}/mantle.svg`, explorerUrl: "https://mantlescan.xyz", lifiId: 5000, isEvm: true },
+  { id: 59144, name: "Linea", shortName: "LINEA", nativeCurrency: "ETH", logoURI: `${LF}/linea.svg`, explorerUrl: "https://lineascan.build", lifiId: 59144, isEvm: true },
+  { id: 534352, name: "Scroll", shortName: "SCRL", nativeCurrency: "ETH", logoURI: `${LF}/scroll.svg`, explorerUrl: "https://scrollscan.com", lifiId: 534352, isEvm: true },
   { id: 202555, name: "Kasplex zkEVM", shortName: "KAS", nativeCurrency: "KAS", logoURI: "https://assets.coingecko.com/coins/images/25789/small/kaspa-icon-exchanges.png", explorerUrl: "https://explorer.kasplex.org", lifiId: 202555, isEvm: true },
 ];
 

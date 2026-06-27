@@ -15,7 +15,7 @@ export const VIGIX = {
   // Fees baked into the bonding curve (basis points).
   buyFeeBps: 15,
   sellFeeBps: 25,
-  logoURI: "/logo/vigix.svg",
+  logoURI: "/logo/vigix.png",
   nativePlatformToken: true,
   priceSource: "on-chain weighted-bonding-curve contract (priceAt/totalSupply)",
   economicModel:

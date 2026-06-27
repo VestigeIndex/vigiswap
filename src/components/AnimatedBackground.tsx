@@ -23,23 +23,27 @@ const COINS = [
   { id: "shiba-inu", symbol: "SHIB", logo: "https://assets.coingecko.com/coins/images/11939/small/shiba.png" },
 ];
 
-// Deterministic spread so chips don't overlap and layout is stable between renders.
+// Positions biased to the screen PERIPHERY (left/right bands + top/bottom strips) so the
+// floating logos never sit on top of the central swap card / block its controls, while
+// staying hoverable. Deterministic so layout is stable between renders.
 const SPOTS = [
-  { top: "12%", left: "8%", delay: "0s", dur: "26s" },
-  { top: "24%", left: "82%", delay: "-4s", dur: "30s" },
-  { top: "44%", left: "16%", delay: "-9s", dur: "28s" },
-  { top: "62%", left: "78%", delay: "-2s", dur: "32s" },
-  { top: "74%", left: "10%", delay: "-12s", dur: "27s" },
-  { top: "16%", left: "52%", delay: "-7s", dur: "31s" },
-  { top: "82%", left: "46%", delay: "-15s", dur: "29s" },
-  { top: "38%", left: "62%", delay: "-5s", dur: "33s" },
-  { top: "54%", left: "38%", delay: "-10s", dur: "25s" },
-  { top: "8%", left: "32%", delay: "-3s", dur: "34s" },
-  { top: "88%", left: "70%", delay: "-13s", dur: "28s" },
-  { top: "30%", left: "30%", delay: "-6s", dur: "30s" },
-  { top: "68%", left: "56%", delay: "-8s", dur: "31s" },
-  { top: "20%", left: "70%", delay: "-11s", dur: "27s" },
-  { top: "50%", left: "88%", delay: "-1s", dur: "33s" },
+  // Left band (safe — hero text side, non-interactive)
+  { top: "12%", left: "4%", delay: "0s", dur: "26s" },
+  { top: "28%", left: "10%", delay: "-9s", dur: "28s" },
+  { top: "44%", left: "5%", delay: "-4s", dur: "31s" },
+  { top: "60%", left: "11%", delay: "-12s", dur: "27s" },
+  { top: "76%", left: "4%", delay: "-3s", dur: "34s" },
+  { top: "90%", left: "14%", delay: "-7s", dur: "30s" },
+  { top: "20%", left: "24%", delay: "-2s", dur: "32s" },
+  { top: "52%", left: "22%", delay: "-11s", dur: "29s" },
+  { top: "84%", left: "30%", delay: "-6s", dur: "33s" },
+  { top: "36%", left: "16%", delay: "-14s", dur: "28s" },
+  // Top & bottom strips only on the right (clear of the swap card body)
+  { top: "6%", left: "48%", delay: "-5s", dur: "30s" },
+  { top: "5%", left: "70%", delay: "-8s", dur: "31s" },
+  { top: "92%", left: "52%", delay: "-1s", dur: "33s" },
+  { top: "94%", left: "72%", delay: "-10s", dur: "25s" },
+  { top: "90%", left: "88%", delay: "-13s", dur: "27s" },
 ];
 
 function fmtPrice(p: number) {
