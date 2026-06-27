@@ -5,11 +5,14 @@ import { AnimatedBackground } from "./AnimatedBackground";
 import { BrandMark } from "./BrandMark";
 import { ConsentBanner } from "./ConsentBanner";
 import { LanguageSelect } from "./LanguageSelect";
-import { Promoters } from "./Promoters";
 import { SwapCard } from "./SwapCard";
 import { WalletProvider } from "./WalletProvider";
 import { WalletButton } from "./WalletButton";
 import { detectLocale, getMessages, type Locale } from "@/lib/i18n";
+
+// Professional/financial surfaces live on vestigeindex.com — VigiSwap is the swap-only entry
+// point. The nav deep-links to the relevant VestigeIndex sections (verified live routes).
+const VESTIGE = "https://www.vestigeindex.com";
 
 export function VigiSwapShell() {
   const [locale, setLocale] = useState<Locale>("en");
@@ -32,14 +35,21 @@ export function VigiSwapShell() {
     <WalletProvider>
     <main className="vigi-page">
       <AnimatedBackground />
-      <div className="shell">
+      <div className="shell shell-swap">
         <header className="topbar">
-          <BrandMark />
+          <div className="nav-left">
+            <BrandMark />
+            <nav className="main-nav" aria-label="Primary">
+              <span className="nav-link active" aria-current="page">{t.swap}</span>
+              <a className="nav-link" href={`${VESTIGE}/trade`}>Trade</a>
+              <a className="nav-link" href={`${VESTIGE}/markets`}>Markets</a>
+              <a className="nav-link" href={`${VESTIGE}/earn`}>Funds</a>
+            </nav>
+          </div>
           <div className="top-actions">
-            <a className="nav-vestige" href="https://www.vestigeindex.com" target="_blank" rel="noreferrer" title={t.powered}>
-              <span>{t.openVestige}</span>
-              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M7 17L17 7M9 7h8v8" />
+            <a className="icon-button" href="/about" aria-label="About VigiSwap" title="About">
+              <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="9" /><path d="M12 11v5M12 7.5h.01" />
               </svg>
             </a>
             <LanguageSelect locale={locale} onChange={changeLocale} />
@@ -47,34 +57,16 @@ export function VigiSwapShell() {
           </div>
         </header>
 
-        <section className="hero-grid">
-          <div className="hero-copy">
-            <div className="eyebrow"><span className="eyebrow-dot" />{t.eyebrow}</div>
-            <h1><span>{t.titleA}</span><br /><span className="gradient-text">{t.titleB}</span></h1>
-            <p className="hero-subtitle">{t.subtitle}</p>
-            <div className="trust-row">
-              <span className="trust-chip">{t.trust1}</span>
-              <span className="trust-chip">{t.trust2}</span>
-              <span className="trust-chip">{t.trust3}</span>
-              <span className="trust-chip">{t.trust4}</span>
-            </div>
-
-            <div className="route-engine-note">
-              <strong>{t.routeEngineTitle}</strong>
-              <p>{t.routeEngineText}</p>
-            </div>
-          </div>
-
+        <section className="swap-stage">
           <div className="swap-panel-wrap">
             <SwapCard t={t} />
           </div>
         </section>
 
-        <Promoters t={t} />
-
-        <footer className="footer">
+        <footer className="footer footer-min">
           <span>© 2026 VigiSwap · a VestigeIndex product · UTXO Labs &amp; Huris S&amp;C</span>
           <div className="footer-links">
+            <a href="/about">About</a>
             <a href="/privacy">{t.privacy}</a>
             <a href="/cookies">{t.cookies}</a>
             <a href="/terms">{t.terms}</a>
