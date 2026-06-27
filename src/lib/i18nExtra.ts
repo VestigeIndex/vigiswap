@@ -4,6 +4,10 @@
 // are intentionally kept untranslated.
 export const extra: Record<string, Record<string, string>> = {
   es: {
+    platformFee: "Comisión de plataforma",
+    bestPriceAcross: "Mejor precio entre proveedores",
+    compareOnly: "solo comparación",
+    best: "Mejor",
     vigixPriceLabel: "precio on-chain",
     vigixPriceLoading: "Cargando precio…",
     vigixPriceUnavailable: "Precio no disponible",

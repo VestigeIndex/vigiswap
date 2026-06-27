@@ -11,6 +11,10 @@ export const localeNames: Record<Locale, string> = {
 export const messages = {
   "en": {
     "eyebrow": "Swap-only. Non-custodial. Powered by Vestige Index.",
+    "platformFee": "Platform fee",
+    "bestPriceAcross": "Best price across providers",
+    "compareOnly": "compare only",
+    "best": "Best",
     "vigixPriceLabel": "on-chain price",
     "vigixPriceLoading": "Loading price…",
     "vigixPriceUnavailable": "Price unavailable",

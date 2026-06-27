@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { tokensForChain, fetchTokensForChain, isAddressLike, customTokenFromAddress, type TokenConfig } from "@/lib/tokens";
+import { TokenLogo } from "./TokenLogo";
 import type { Messages } from "@/lib/types";
 
 export function TokenSelector({
@@ -40,7 +41,7 @@ export function TokenSelector({
   return (
     <>
       <button className="token-button" onClick={() => setOpen(true)} type="button">
-        <img className="token-logo" src={token.logoURI} alt="" onError={(e) => { e.currentTarget.src = "/logo/token-fallback.svg"; }} />
+        <TokenLogo symbol={token.symbol} logoURI={token.logoURI} size={24} />
         <span>{token.symbol}</span>
         <span aria-hidden="true">⌄</span>
       </button>
@@ -57,7 +58,7 @@ export function TokenSelector({
             <div className="list">
               {tokens.map((item) => (
                 <button key={`${item.chainId}-${item.address}`} className="list-button" onClick={() => { onChange(item); setOpen(false); }}>
-                  <img src={item.logoURI} alt="" onError={(e) => { e.currentTarget.src = "/logo/token-fallback.svg"; }} />
+                  <TokenLogo symbol={item.symbol} logoURI={item.logoURI} size={30} />
                   <div>
                     <strong>{item.symbol}{item.isPlatformToken ? " · VIGIX" : ""}</strong>
                     <span>{item.name}</span>

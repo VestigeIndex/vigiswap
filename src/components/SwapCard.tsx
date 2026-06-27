@@ -10,6 +10,8 @@ import { VIGIX } from "@/lib/vigix";
 import { useVigixPrice } from "@/lib/useVigixPrice";
 import { wagmiConfig, PROJECT_ID_VALID, openAppKit } from "@/lib/wallet";
 import { getVestigeQuote, type NormalizedRoute } from "@/lib/vestigeApiClient";
+import { getProviderComparison, type ComparisonQuote } from "@/lib/aggregators";
+import { PLATFORM_FEE_BPS, feeLabel } from "@/lib/fees";
 import { ChainSelector } from "./ChainSelector";
 import { TokenSelector } from "./TokenSelector";
 import { TransactionTimeline, type TxStage } from "./TransactionTimeline";
@@ -45,6 +47,7 @@ export function SwapCard({ t }: { t: Messages }) {
   const [showSettings, setShowSettings] = useState(false);
 
   const [route, setRoute] = useState<NormalizedRoute | null>(null);
+  const [comparison, setComparison] = useState<ComparisonQuote[]>([]);
   const [quoting, setQuoting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [stage, setStage] = useState<TxStage>("idle");
@@ -66,6 +69,7 @@ export function SwapCard({ t }: { t: Messages }) {
     const parsed = Number(amount);
     if (!amount || !Number.isFinite(parsed) || parsed <= 0 || fromToken.address === toToken.address) {
       setRoute(null);
+      setComparison([]);
       setError(null);
       setQuoting(false);
       return;
@@ -87,6 +91,17 @@ export function SwapCard({ t }: { t: Messages }) {
         if (seq !== quoteSeq.current) return;
         setRoute(result.bestRoute);
         if (!result.bestRoute) setError(t.quoteUnavailable);
+        // Best-effort cross-aggregator comparison (keyless ParaSwap/Odos), shown alongside
+        // the executable LI.FI best route. Never blocks or fails the quote.
+        getProviderComparison({
+          chainId: chain.lifiId,
+          fromToken: isNative(fromToken.address) ? NATIVE_LIFI : fromToken.address,
+          toToken: isNative(toToken.address) ? NATIVE_LIFI : toToken.address,
+          fromDecimals: fromToken.decimals,
+          toDecimals: toToken.decimals,
+          amountWei,
+          recipient: address,
+        }).then((cmp) => { if (seq === quoteSeq.current) setComparison(cmp); });
       } catch (e) {
         if (seq !== quoteSeq.current) return;
         setRoute(null);
@@ -285,7 +300,35 @@ export function SwapCard({ t }: { t: Messages }) {
         <div className="route-row"><span>{t.priceImpact}</span><strong>{route?.priceImpactPct != null ? `${route.priceImpactPct.toFixed(2)}%` : "—"}</strong></div>
         <div className="route-row"><span>{t.gas}</span><strong>{route?.gasUsd ? `$${Number(route.gasUsd).toFixed(2)}` : "—"}</strong></div>
         <div className="route-row"><span>{t.fee}</span><strong>{route?.feeUsd ? `$${Number(route.feeUsd).toFixed(2)}` : t.feePolicy}</strong></div>
+        <div className="route-row"><span>{t.platformFee}</span><strong>{feeLabel(PLATFORM_FEE_BPS)}</strong></div>
       </div>
+
+      {route && comparison.length > 0 ? (
+        <div className="provider-compare">
+          <h4>{t.bestPriceAcross}</h4>
+          {(() => {
+            const rows = [
+              { provider: "LI.FI", outputWei: route.outputAmount, executable: true, via: route.provider },
+              ...comparison.map((c) => ({ provider: c.provider, outputWei: c.outputWei, executable: false, via: c.via })),
+            ];
+            let bestWei = 0n;
+            for (const r of rows) { try { const v = BigInt(r.outputWei || "0"); if (v > bestWei) bestWei = v; } catch { /* skip */ } }
+            return rows.map((r) => {
+              let isBest = false;
+              try { isBest = BigInt(r.outputWei || "0") === bestWei && bestWei > 0n; } catch { /* skip */ }
+              return (
+                <div key={r.provider} className={`provider-row${isBest ? " best" : ""}`}>
+                  <span>{r.provider}{r.via && r.via !== r.provider ? ` · ${r.via}` : ""}{r.executable ? "" : ` · ${t.compareOnly}`}</span>
+                  <strong>
+                    {fmt(r.outputWei, toToken.decimals)} {toToken.symbol}
+                    {isBest ? <span className="pill">{t.best}</span> : null}
+                  </strong>
+                </div>
+              );
+            });
+          })()}
+        </div>
+      ) : null}
 
       <TransactionTimeline t={t} stage={stage} explorerUrl={explorerUrl} />
 
