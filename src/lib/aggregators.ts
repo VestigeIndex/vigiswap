@@ -51,7 +51,7 @@ async function paraswapQuote(p: ComparisonParams): Promise<ComparisonQuote | nul
     const pr = data.priceRoute;
     if (!pr?.destAmount) return null;
     const via = pr.bestRoute?.[0]?.swaps?.[0]?.swapExchanges?.[0]?.exchange;
-    return { provider: "ParaSwap", outputWei: pr.destAmount, outUsd: pr.destUSD ? Number(pr.destUSD) : undefined, via };
+    return { provider: "Velora", outputWei: pr.destAmount, outUsd: pr.destUSD ? Number(pr.destUSD) : undefined, via };
   } catch {
     return null;
   }
