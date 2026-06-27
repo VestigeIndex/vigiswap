@@ -76,8 +76,9 @@ export function AnimatedBackground() {
           const price = prices[c.id];
           return (
             <div key={c.id} className="bg-coin" style={{ top: s.top, left: s.left, animationDelay: s.delay, animationDuration: s.dur }}>
-              <img src={c.logo} alt="" loading="lazy" />
-              <span className="bg-coin-meta">
+              <img src={c.logo} alt={c.symbol} loading="lazy" />
+              {/* Price is revealed only on hover over the logo. */}
+              <span className="bg-coin-price">
                 <strong>{c.symbol}</strong>
                 {price != null ? <em>{fmtPrice(price)}</em> : null}
               </span>
