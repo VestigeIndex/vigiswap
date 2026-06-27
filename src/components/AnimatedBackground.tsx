@@ -18,6 +18,9 @@ const COINS = [
   { id: "aave", symbol: "AAVE", logo: "https://assets.coingecko.com/coins/images/12645/small/aave-token-round.png" },
   { id: "avalanche-2", symbol: "AVAX", logo: "https://assets.coingecko.com/coins/images/12559/small/Avalanche_Circle_RedWhite_Trans.png" },
   { id: "ripple", symbol: "XRP", logo: "https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png" },
+  { id: "dogecoin", symbol: "DOGE", logo: "https://assets.coingecko.com/coins/images/5/small/dogecoin.png" },
+  { id: "pepe", symbol: "PEPE", logo: "https://assets.coingecko.com/coins/images/29850/small/pepe-token.jpeg" },
+  { id: "shiba-inu", symbol: "SHIB", logo: "https://assets.coingecko.com/coins/images/11939/small/shiba.png" },
 ];
 
 // Deterministic spread so chips don't overlap and layout is stable between renders.
@@ -34,6 +37,9 @@ const SPOTS = [
   { top: "8%", left: "32%", delay: "-3s", dur: "34s" },
   { top: "88%", left: "70%", delay: "-13s", dur: "28s" },
   { top: "30%", left: "30%", delay: "-6s", dur: "30s" },
+  { top: "68%", left: "56%", delay: "-8s", dur: "31s" },
+  { top: "20%", left: "70%", delay: "-11s", dur: "27s" },
+  { top: "50%", left: "88%", delay: "-1s", dur: "33s" },
 ];
 
 function fmtPrice(p: number) {
