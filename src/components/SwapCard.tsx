@@ -77,7 +77,7 @@ export function SwapCard({ t }: { t: Messages }) {
       try {
         const amountWei = parseUnits(amount, fromToken.decimals).toString();
         const result = await getVestigeQuote({
-          chainId: chain.id,
+          chainId: chain.lifiId,
           fromToken: isNative(fromToken.address) ? NATIVE_LIFI : fromToken.address,
           toToken: isNative(toToken.address) ? NATIVE_LIFI : toToken.address,
           amount: amountWei,

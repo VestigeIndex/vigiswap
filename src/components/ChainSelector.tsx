@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CHAINS, type ChainConfig } from "@/lib/chains";
+import { EVM_CHAINS as CHAINS, type ChainConfig } from "@/lib/chains";
 import type { Messages } from "@/lib/types";
 
 export function ChainSelector({ t, chain, onChange }: { t: Messages; chain: ChainConfig; onChange: (chain: ChainConfig) => void }) {

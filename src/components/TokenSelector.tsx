@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { tokensForChain, fetchTokensForChain, type TokenConfig } from "@/lib/tokens";
+import { tokensForChain, fetchTokensForChain, isAddressLike, customTokenFromAddress, type TokenConfig } from "@/lib/tokens";
 import type { Messages } from "@/lib/types";
 
 export function TokenSelector({
@@ -29,8 +29,13 @@ export function TokenSelector({
     const filtered = allTokens.filter((item) =>
       !q || item.symbol.toLowerCase().includes(q) || item.name.toLowerCase().includes(q) || item.address.toLowerCase().includes(q)
     );
-    return filtered.slice(0, 80);
-  }, [allTokens, query]);
+    // Uniswap-style: if a full contract address is pasted and isn't in the list, let
+    // the user import it directly.
+    if (!filtered.length && isAddressLike(query)) {
+      return [customTokenFromAddress(chainId, query)];
+    }
+    return filtered.slice(0, 120);
+  }, [allTokens, query, chainId]);
 
   return (
     <>

@@ -1,13 +1,19 @@
 import { WagmiAdapter } from "@reown/appkit-adapter-wagmi";
-import { mainnet, polygon, base, arbitrum, optimism, bsc } from "@reown/appkit/networks";
+import {
+  mainnet, polygon, base, arbitrum, optimism, bsc, avalanche,
+  cronos, gnosis, fantom, zksync, mantle, linea, scroll,
+} from "@reown/appkit/networks";
 import type { AppKitNetwork } from "@reown/appkit/networks";
 import { createAppKit } from "@reown/appkit/react";
 
-// Polygon (137) is mandatory because VIGIX lives there.
-export const networks = [mainnet, polygon, base, arbitrum, optimism, bsc] as [
-  AppKitNetwork,
-  ...AppKitNetwork[],
-];
+// Full EVM set, mirroring VestigeIndex's supported chains so the lite shares the same
+// universe. Polygon (137) is mandatory because VIGIX lives there. (Bitcoin and Kasplex
+// are in the swap catalog but not EVM wallet networks: BTC is UTXO, Kasplex isn't a
+// wagmi network — they participate via the routing engine, not wallet chain-switching.)
+export const networks = [
+  mainnet, polygon, bsc, arbitrum, optimism, base, avalanche,
+  cronos, gnosis, fantom, zksync, mantle, linea, scroll,
+] as [AppKitNetwork, ...AppKitNetwork[]];
 
 export const PROJECT_ID = (process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || "").trim();
 export const PROJECT_ID_VALID = /^[0-9a-f]{32}$/i.test(PROJECT_ID);
