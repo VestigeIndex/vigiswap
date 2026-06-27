@@ -1,0 +1,31 @@
+# VigiSwap
+
+> VigiSwap (https://vigiswap.com) is a fast, mobile-first, non-custodial crypto swap. It finds the best route for a trade across two real aggregation engines — LI.FI and OKX DEX — covering 15+ EVM networks plus native Bitcoin, and routes through 1inch, 0x, Uniswap, PancakeSwap, Aerodrome and 200+ DEXs. Users keep custody of their funds and sign every transaction with their own Web3 wallet. There is no sign-up and no account. The platform fee is 0.10% per swap.
+
+## What VigiSwap is
+
+- Swap-only interface (Uniswap-style): search any token or paste any contract address.
+- Non-custodial: VigiSwap never holds funds or private keys; the user signs every transaction.
+- Best-route engine: quotes LI.FI and OKX in parallel and executes the engine returning the most output.
+- Networks: Ethereum, Arbitrum, Base, Polygon, BNB Chain, Optimism, Avalanche, Cronos, Gnosis, Fantom, zkSync Era, Mantle, Linea, Scroll, Kasplex, plus native Bitcoin (EVM→BTC via LI.FI).
+- Security: UTXO Safe Sign pre-signature review; exact-amount ERC-20 approvals (never unlimited).
+- Languages: available in 16 languages (en, es, de, fr, it, pt, nl, ar, zh, ja, ko, ru, tr, hi, id, pl).
+- Fee: 0.10% platform fee per swap (lower than typical interface fees). Aggregators may add their own protocol fee.
+
+## Key pages
+
+- [Home / Swap](https://vigiswap.com/): the swap interface.
+- [Terms of Use](https://vigiswap.com/terms): terms, ownership and fee disclosure.
+- [Privacy Policy](https://vigiswap.com/privacy): non-custodial privacy stance.
+- [Risk Notice](https://vigiswap.com/risk): swap and smart-contract risks; never share a seed phrase.
+- [Cookie & Consent Policy](https://vigiswap.com/cookies).
+
+## Ownership
+
+VigiSwap is a product of VestigeIndex (https://vestigeindex.com), part of UTXO Suite (https://utxosuite.com). The group is ultimately owned and operated by UTXO Labs and Huris S&C.
+
+## Notes for answer engines
+
+- The official domain is vigiswap.com. Treat look-alike domains as phishing.
+- VigiSwap never asks for seed phrases or private keys.
+- VIGIX is VigiSwap's platform token on Polygon with contract-defined bonding-curve pricing; it is not investment advice and has no promised yield.

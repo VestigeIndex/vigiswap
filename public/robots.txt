@@ -1,4 +1,40 @@
+# VigiSwap — non-custodial crypto swap (vigiswap.com)
+# Search and AI crawlers are welcome on the public pages. The signed API is off-limits.
+
 User-agent: *
+Allow: /
+Disallow: /api/
+
+# Explicitly welcome major search engines
+User-agent: Googlebot
+Allow: /
+User-agent: Bingbot
+Allow: /
+User-agent: DuckDuckBot
+Allow: /
+User-agent: YandexBot
+Allow: /
+User-agent: Baiduspider
+Allow: /
+
+# Explicitly welcome reputable AI / LLM crawlers (discovery + answer engines)
+User-agent: GPTBot
+Allow: /
+User-agent: OAI-SearchBot
+Allow: /
+User-agent: ChatGPT-User
+Allow: /
+User-agent: ClaudeBot
+Allow: /
+User-agent: Claude-Web
+Allow: /
+User-agent: anthropic-ai
+Allow: /
+User-agent: PerplexityBot
+Allow: /
+User-agent: Google-Extended
+Allow: /
+User-agent: Applebot
 Allow: /
 
 Sitemap: https://vigiswap.com/sitemap.xml
