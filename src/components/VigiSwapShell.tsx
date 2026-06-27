@@ -37,15 +37,13 @@ export function VigiSwapShell() {
       <AnimatedBackground />
       <div className="shell shell-swap">
         <header className="topbar">
-          <div className="nav-left">
-            <BrandMark />
-            <nav className="main-nav" aria-label="Primary">
-              <span className="nav-link active" aria-current="page">{t.swap}</span>
-              <a className="nav-link" href={`${VESTIGE}/trade`}>Trade</a>
-              <a className="nav-link" href={`${VESTIGE}/markets`}>Markets</a>
-              <a className="nav-link" href={`${VESTIGE}/earn`}>Funds</a>
-            </nav>
-          </div>
+          <BrandMark />
+          <nav className="main-nav" aria-label="Primary">
+            <span className="nav-link active" aria-current="page">Swap</span>
+            <a className="nav-link" href={`${VESTIGE}/trade`}>Trade</a>
+            <a className="nav-link" href={`${VESTIGE}/markets`}>Markets</a>
+            <a className="nav-link" href={`${VESTIGE}/earn`}>Funds</a>
+          </nav>
           <div className="top-actions">
             <a className="icon-button" href="/about" aria-label="About VigiSwap" title="About">
               <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
