@@ -1,16 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { EVM_CHAINS as CHAINS, type ChainConfig } from "@/lib/chains";
+import { EVM_CHAINS, type ChainConfig } from "@/lib/chains";
+import { TokenLogo } from "./TokenLogo";
 import type { Messages } from "@/lib/types";
 
-export function ChainSelector({ t, chain, onChange }: { t: Messages; chain: ChainConfig; onChange: (chain: ChainConfig) => void }) {
+export function ChainSelector({ t, chain, onChange, chains = EVM_CHAINS, variant }: { t: Messages; chain: ChainConfig; onChange: (chain: ChainConfig) => void; chains?: ChainConfig[]; variant?: "chip" }) {
   const [open, setOpen] = useState(false);
+  const CHAINS = chains;
   return (
     <>
-      <button className="chain-button" onClick={() => setOpen(true)} type="button">
-        <img className="chain-logo" src={chain.logoURI} alt="" onError={(e) => { e.currentTarget.src = "/logo/token-fallback.svg"; }} />
-        <span>{chain.name}</span>
+      <button className={variant === "chip" ? "chain-chip" : "chain-button"} onClick={() => setOpen(true)} type="button">
+        <TokenLogo symbol={chain.shortName} logoURI={chain.logoURI} size={variant === "chip" ? 18 : 22} />
+        <span>{variant === "chip" ? chain.shortName : chain.name}</span>
         <span aria-hidden="true">⌄</span>
       </button>
 
@@ -24,8 +26,8 @@ export function ChainSelector({ t, chain, onChange }: { t: Messages; chain: Chai
             <div className="list">
               {CHAINS.map((item) => (
                 <button key={item.id} className="list-button" onClick={() => { onChange(item); setOpen(false); }}>
-                  <img src={item.logoURI} alt="" onError={(e) => { e.currentTarget.src = "/logo/token-fallback.svg"; }} />
-                  <div><strong>{item.name}</strong><span>Chain ID {item.id}</span></div>
+                  <TokenLogo symbol={item.shortName} logoURI={item.logoURI} size={30} />
+                  <div><strong>{item.name}</strong><span>{item.isEvm ? `Chain ID ${item.id}` : "Bitcoin · UTXO"}</span></div>
                 </button>
               ))}
             </div>

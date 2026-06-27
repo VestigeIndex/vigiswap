@@ -35,8 +35,26 @@ export const CHAINS: ChainConfig[] = [
   { id: 202555, name: "Kasplex zkEVM", shortName: "KAS", nativeCurrency: "KAS", logoURI: "https://assets.coingecko.com/coins/images/25789/small/kaspa-icon-exchanges.png", explorerUrl: "https://explorer.kasplex.org", lifiId: 202555, isEvm: true },
 ];
 
+// Bitcoin is supported natively by the LI.FI engine (UTXO chain id 20000000000001, token
+// address "bitcoin"). It is a valid DESTINATION only here: paying FROM BTC needs a BTC
+// wallet, which an EVM-only swap surface can't sign. EVM→BTC executes with the EVM wallet.
+export const BTC_CHAIN: ChainConfig = {
+  id: 8332,
+  name: "Bitcoin",
+  shortName: "BTC",
+  nativeCurrency: "BTC",
+  logoURI: "https://assets.coingecko.com/coins/images/1/small/bitcoin.png",
+  explorerUrl: "https://mempool.space",
+  lifiId: 20000000000001,
+  isEvm: false,
+};
+
+// FROM side = EVM chains (must be signable by the connected wallet).
 export const EVM_CHAINS = CHAINS.filter((c) => c.isEvm);
+// TO side = EVM chains + Bitcoin (cross-chain via LI.FI).
+export const DEST_CHAINS = [...EVM_CHAINS, BTC_CHAIN];
+export const ALL_CHAINS = [...CHAINS, BTC_CHAIN];
 
 export function chainById(id: number) {
-  return CHAINS.find((c) => c.id === id) ?? null;
+  return ALL_CHAINS.find((c) => c.id === id) ?? null;
 }

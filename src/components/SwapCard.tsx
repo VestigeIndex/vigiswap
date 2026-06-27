@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { formatUnits, parseUnits, erc20Abi, type Address } from "viem";
 import { useAccount, useBalance, useChainId, useReadContract, useSwitchChain } from "wagmi";
 import { readContract, sendTransaction, writeContract, waitForTransactionReceipt } from "wagmi/actions";
-import { CHAINS } from "@/lib/chains";
+import { EVM_CHAINS, DEST_CHAINS, type ChainConfig } from "@/lib/chains";
 import { tokensForChain, type TokenConfig } from "@/lib/tokens";
 import { VIGIX } from "@/lib/vigix";
 import { useVigixPrice } from "@/lib/useVigixPrice";
@@ -40,13 +40,21 @@ export function SwapCard({ t }: { t: Messages }) {
   const { switchChainAsync } = useSwitchChain();
   const vigix = useVigixPrice();
 
-  const [chain, setChain] = useState(CHAINS.find((c) => c.id === 137) || CHAINS[0]);
-  const chainTokens = useMemo(() => tokensForChain(chain.id), [chain.id]);
-  const [fromToken, setFromToken] = useState<TokenConfig>(chainTokens[1] || chainTokens[0]);
-  const [toToken, setToToken] = useState<TokenConfig>(chainTokens[0]);
+  // Cross-chain: `chain` is the FROM/source chain (EVM, signable). `toChain` is the DEST
+  // chain (EVM or Bitcoin via LI.FI). Same-chain swap = both equal.
+  const [chain, setChain] = useState(EVM_CHAINS.find((c) => c.id === 137) || EVM_CHAINS[0]);
+  const [toChain, setToChain] = useState<ChainConfig>(EVM_CHAINS.find((c) => c.id === 137) || EVM_CHAINS[0]);
+  const fromTokens = useMemo(() => tokensForChain(chain.id), [chain.id]);
+  const toTokens = useMemo(() => tokensForChain(toChain.id), [toChain.id]);
+  const [fromToken, setFromToken] = useState<TokenConfig>(fromTokens[1] || fromTokens[0]);
+  const [toToken, setToToken] = useState<TokenConfig>(fromTokens[0]);
   const [amount, setAmount] = useState("");
+  const [btcAddress, setBtcAddress] = useState("");
   const [slippageBps, setSlippageBps] = useState(50);
   const [showSettings, setShowSettings] = useState(false);
+
+  const crossChain = chain.id !== toChain.id;
+  const toIsBtc = toChain.id === 8332;
 
   const [route, setRoute] = useState<NormalizedRoute | null>(null);
   const [comparison, setComparison] = useState<ComparisonQuote[]>([]);
@@ -57,19 +65,29 @@ export function SwapCard({ t }: { t: Messages }) {
 
   const quoteSeq = useRef(0);
 
-  function changeChain(next: typeof chain) {
+  function changeChain(next: ChainConfig) {
     const nextTokens = tokensForChain(next.id);
     setChain(next);
     setFromToken(nextTokens.find((x) => x.symbol === "USDC") || nextTokens[0]);
-    setToToken(nextTokens.find((x) => x.symbol === "VIGIX") || nextTokens[1] || nextTokens[0]);
     setRoute(null);
+    setComparison([]);
+    setError(null);
+  }
+
+  function changeToChain(next: ChainConfig) {
+    const nextTokens = tokensForChain(next.id);
+    setToChain(next);
+    setToToken(nextTokens.find((x) => x.symbol === "VIGIX") || nextTokens[0]);
+    setRoute(null);
+    setComparison([]);
     setError(null);
   }
 
   // Debounced real quote. Cancels stale requests via a sequence guard.
   useEffect(() => {
     const parsed = Number(amount);
-    if (!amount || !Number.isFinite(parsed) || parsed <= 0 || fromToken.address === toToken.address) {
+    const samePair = chain.id === toChain.id && fromToken.address === toToken.address;
+    if (!amount || !Number.isFinite(parsed) || parsed <= 0 || samePair) {
       setRoute(null);
       setComparison([]);
       setError(null);
@@ -82,28 +100,35 @@ export function SwapCard({ t }: { t: Messages }) {
     const handle = setTimeout(async () => {
       try {
         const amountWei = parseUnits(amount, fromToken.decimals).toString();
+        // BTC destination needs a BTC receive address; fall back to the wallet for EVM dests.
+        const destAddress = toIsBtc ? (btcAddress.trim() || undefined) : address;
         const result = await getVestigeQuote({
           chainId: chain.lifiId,
+          toChainId: toChain.lifiId,
           fromToken: isNative(fromToken.address) ? NATIVE_LIFI : fromToken.address,
           toToken: isNative(toToken.address) ? NATIVE_LIFI : toToken.address,
           amount: amountWei,
           slippageBps,
           recipient: address,
+          destAddress,
         });
         if (seq !== quoteSeq.current) return;
         setRoute(result.bestRoute);
         if (!result.bestRoute) setError(t.quoteUnavailable);
-        // Best-effort cross-aggregator comparison (keyless ParaSwap/Odos), shown alongside
-        // the executable LI.FI best route. Never blocks or fails the quote.
-        getProviderComparison({
-          chainId: chain.lifiId,
-          fromToken: isNative(fromToken.address) ? NATIVE_LIFI : fromToken.address,
-          toToken: isNative(toToken.address) ? NATIVE_LIFI : toToken.address,
-          fromDecimals: fromToken.decimals,
-          toDecimals: toToken.decimals,
-          amountWei,
-          recipient: address,
-        }).then((cmp) => { if (seq === quoteSeq.current) setComparison(cmp); });
+        // Cross-aggregator comparison (ParaSwap/Odos) only applies to same-chain swaps.
+        if (!crossChain) {
+          getProviderComparison({
+            chainId: chain.lifiId,
+            fromToken: isNative(fromToken.address) ? NATIVE_LIFI : fromToken.address,
+            toToken: isNative(toToken.address) ? NATIVE_LIFI : toToken.address,
+            fromDecimals: fromToken.decimals,
+            toDecimals: toToken.decimals,
+            amountWei,
+            recipient: address,
+          }).then((cmp) => { if (seq === quoteSeq.current) setComparison(cmp); });
+        } else {
+          setComparison([]);
+        }
       } catch (e) {
         if (seq !== quoteSeq.current) return;
         setRoute(null);
@@ -113,7 +138,7 @@ export function SwapCard({ t }: { t: Messages }) {
       }
     }, 450);
     return () => clearTimeout(handle);
-  }, [amount, fromToken, toToken, chain.id, slippageBps, address, t.quoteUnavailable]);
+  }, [amount, fromToken, toToken, chain.id, chain.lifiId, toChain.id, toChain.lifiId, crossChain, toIsBtc, btcAddress, slippageBps, address, t.quoteUnavailable]);
 
   // wagmi v3: useBalance is native-only; ERC-20 balance comes from balanceOf.
   const fromIsNative = isNative(fromToken.address);
@@ -239,6 +264,9 @@ export function SwapCard({ t }: { t: Messages }) {
   } else if (stage === "approving" || stage === "swapping" || stage === "pending") {
     primaryLabel = t.txPending;
     primaryDisabled = true;
+  } else if (toIsBtc && !btcAddress.trim()) {
+    primaryLabel = t.enterBtcAddress;
+    primaryDisabled = true;
   } else if (safeSign?.decision === "block") {
     primaryLabel = t.safeSignBlock;
     primaryDisabled = true;
@@ -258,7 +286,6 @@ export function SwapCard({ t }: { t: Messages }) {
             {route ? <span className="best-badge"><span className="best-dot" aria-hidden="true" />{route.provider}</span> : null}
           </span>
         </div>
-        <ChainSelector t={t} chain={chain} onChange={changeChain} />
       </div>
 
       <div className="swap-input">
@@ -274,22 +301,43 @@ export function SwapCard({ t }: { t: Messages }) {
         <div className="swap-input-main">
           <input className="amount-input" inputMode="decimal" placeholder="0" value={amount}
             onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))} />
-          <TokenSelector t={t} chainId={chain.id} token={fromToken} onChange={(x) => setFromToken(x)} />
+          <div className="asset-pick">
+            <ChainSelector t={t} chain={chain} onChange={changeChain} chains={EVM_CHAINS} variant="chip" />
+            <TokenSelector t={t} chainId={chain.id} token={fromToken} onChange={(x) => setFromToken(x)} />
+          </div>
         </div>
       </div>
 
       <div className="switch-row">
-        <button className="switch-button" type="button" aria-label="Switch tokens"
-          onClick={() => { const a = fromToken; setFromToken(toToken); setToToken(a); setAmount(""); setRoute(null); }}>↓</button>
+        <button className="switch-button" type="button" aria-label="Switch tokens" disabled={!toChain.isEvm}
+          onClick={() => {
+            if (!toChain.isEvm) return;
+            const a = fromToken; const ac = chain;
+            setChain(toChain); setToChain(ac);
+            setFromToken(toToken); setToToken(a);
+            setAmount(""); setRoute(null); setComparison([]);
+          }}>↓</button>
       </div>
 
       <div className="swap-input">
         <div className="swap-input-top"><span>{t.youReceive}</span></div>
         <div className="swap-input-main">
           <input className="amount-input" placeholder="0" value={quoting ? "…" : outDisplay} readOnly />
-          <TokenSelector t={t} chainId={chain.id} token={toToken} onChange={(x) => setToToken(x)} />
+          <div className="asset-pick">
+            <ChainSelector t={t} chain={toChain} onChange={changeToChain} chains={DEST_CHAINS} variant="chip" />
+            <TokenSelector t={t} chainId={toChain.id} token={toToken} onChange={(x) => setToToken(x)} />
+          </div>
         </div>
       </div>
+
+      {toIsBtc ? (
+        <div className="btc-dest">
+          <label htmlFor="btc-addr">{t.btcDestLabel}</label>
+          <input id="btc-addr" className="btc-input" placeholder="bc1q…" value={btcAddress} spellCheck={false}
+            onChange={(e) => setBtcAddress(e.target.value.trim())} />
+          <span className="btc-hint">{t.btcDestHint}</span>
+        </div>
+      ) : null}
 
       <div className="settings-row">
         <div className="inline-settings">

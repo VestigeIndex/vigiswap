@@ -27,9 +27,21 @@ const VIGIX_TOKEN: TokenConfig = {
   isPlatformToken: true,
 };
 
+// Bitcoin (LI.FI native): token address is the literal "bitcoin", 8 decimals.
+export const BTC_TOKEN: TokenConfig = {
+  chainId: 8332,
+  address: "bitcoin",
+  symbol: "BTC",
+  name: "Bitcoin",
+  decimals: 8,
+  logoURI: "https://assets.coingecko.com/coins/images/1/small/bitcoin.png",
+  isNative: true,
+};
+
 // Curated/pinned commons for fast access (native + stables + majors). The full token
 // universe is loaded live from LI.FI in fetchTokensForChain — this is just the head.
 export function commonTokensForChain(chainId: number): TokenConfig[] {
+  if (chainId === 8332) return [BTC_TOKEN];
   const base = COMMON_TOKENS[chainId] ? [...COMMON_TOKENS[chainId]] : [];
   if (chainId === VIGIX.chainId) {
     return [VIGIX_TOKEN, ...base.filter((t) => t.address.toLowerCase() !== VIGIX.address.toLowerCase())];

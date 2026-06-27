@@ -20,8 +20,10 @@ export type QuoteRequest = {
   /** Amount in base units (wei) of the source token. Use viem parseUnits with token decimals. */
   amount: string;
   slippageBps: number;
-  /** Connected wallet address. Required by LI.FI to attach a transactionRequest. */
+  /** Connected wallet address (source). Required by LI.FI to attach a transactionRequest. */
   recipient?: string;
+  /** Destination address. Differs from recipient for cross-chain to BTC (a BTC address). */
+  destAddress?: string;
 };
 
 /** A LI.FI route, narrowed to the fields VigiSwap reads. */
@@ -104,7 +106,7 @@ function buildBody(request: QuoteRequest, withFee: boolean) {
     toTokenAddress: request.toToken,
     fromAmount: request.amount,
     fromAddress: request.recipient,
-    toAddress: request.recipient,
+    toAddress: request.destAddress ?? request.recipient,
     options: {
       slippage: Math.max(0, request.slippageBps) / 10_000,
       order: "RECOMMENDED" as const,
