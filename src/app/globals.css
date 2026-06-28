@@ -77,9 +77,12 @@
 .bg-token:hover,.bg-token.active{z-index:4}
 .bg-token:hover img,.bg-token.active img{opacity:1;filter:none;transform:scale(1.35)}
 .bg-token-price{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%) translateY(4px);display:flex;flex-direction:column;align-items:center;gap:1px;padding:6px 12px;border-radius:12px;background:rgba(26,16,12,.94);color:#fff7e8;box-shadow:0 12px 30px rgba(32,19,15,.3);opacity:0;pointer-events:none;transition:opacity .16s ease,transform .16s ease;white-space:nowrap;z-index:3}
-.bg-token:hover .bg-token-price,.bg-token.active .bg-token-price{opacity:1;transform:translateX(-50%) translateY(0)}
+.bg-token.active .bg-token-price{opacity:1;transform:translateX(-50%) translateY(0)}
 .bg-token-price strong{font-size:11px;font-weight:840;letter-spacing:.02em}
 .bg-token-price em{font-style:normal;font-size:13px;font-weight:820;color:#ffd9a0}
+.bg-token-change{font-style:normal;font-size:10.5px;font-weight:760;letter-spacing:.01em;opacity:.92}
+.bg-token-change.up{color:#46d6a0}
+.bg-token-change.down{color:#ff8a7a}
 @keyframes tokenDrift{from{transform:translate(0,0)}to{transform:translate(var(--dx,0),var(--dy,0))}}
 @media (max-width:760px){.bg-token:nth-child(n+49){display:none}.bg-token img{opacity:.16}}
 @media (prefers-reduced-motion:reduce){.bg-token{animation:none}}
