@@ -28,7 +28,7 @@ const FALLBACK: Mkt[] = [
   { id: "avalanche-2", symbol: "AVAX", image: "https://assets.coingecko.com/coins/images/12559/small/Avalanche_Circle_RedWhite_Trans.png", price: 0, change24h: null },
 ];
 
-const MAX = 100; // top 100 tokens (CSS thins them out on small screens)
+const MAX = 50; // top 50 tokens — fewer, bigger, more visible (CSS thins on small screens)
 
 function fmtPrice(p: number) {
   if (!Number.isFinite(p) || p <= 0) return "";
@@ -45,9 +45,9 @@ function fmtChange(c: number | null) {
 
 type Layout = { top: number; left: number; size: number; dx: number; dy: number; dur: number; delay: number };
 
-// Jittered-grid placement: one token per cell + a small random offset, so neighbours never
-// overlap. Drift amplitude is kept well below the cell size so each logo stays inside its own
-// patch of space as it moves — the separation is preserved across the whole animation.
+// Jittered-grid placement: one token per cell + a random offset, so neighbours never overlap.
+// Each logo then wanders on a gentle ORBIT (see the tokenDrift keyframes) whose radius is kept
+// below half the cell, so motion is clearly visible yet the separation always holds.
 function buildLayout(count: number): Layout[] {
   if (count <= 0) return [];
   // Columns chosen for a ~16:9 viewport so cells are roughly square on screen.
@@ -56,13 +56,13 @@ function buildLayout(count: number): Layout[] {
   const cellW = 100 / cols;
   const cellH = 100 / rows;
   // Padding keeps logos off the very edges; jitter stays inside the cell's inner area.
-  const padX = cellW * 0.16;
-  const padY = cellH * 0.16;
+  const padX = cellW * 0.14;
+  const padY = cellH * 0.14;
   const jitterX = cellW - padX * 2;
   const jitterY = cellH - padY * 2;
-  // Drift small relative to a cell so tokens never wander into each other.
-  const driftX = Math.min(4, cellW * 0.35);
-  const driftY = Math.min(5, cellH * 0.35);
+  // Orbit radius — large enough to read as movement, capped under half the cell.
+  const driftX = Math.min(6, cellW * 0.5);
+  const driftY = Math.min(8, cellH * 0.5);
 
   const out: Layout[] = [];
   for (let i = 0; i < count; i++) {
@@ -70,14 +70,16 @@ function buildLayout(count: number): Layout[] {
     const row = Math.floor(i / cols);
     const left = col * cellW + padX + Math.random() * jitterX;
     const top = row * cellH + padY + Math.random() * jitterY;
+    const sign = Math.random() < 0.5 ? -1 : 1; // randomize orbit direction
     out.push({
       left,
       top,
-      size: 24 + Math.random() * 16,
-      dx: (Math.random() * 2 - 1) * driftX,
-      dy: (Math.random() * 2 - 1) * driftY,
-      dur: 26 + Math.random() * 34,
-      delay: -Math.random() * 40,
+      size: 30 + Math.random() * 22, // 30–52px, noticeably bigger
+      // Keep a healthy minimum magnitude (>=55% of the cap) so none look static.
+      dx: sign * (0.55 + Math.random() * 0.45) * driftX,
+      dy: (0.55 + Math.random() * 0.45) * driftY,
+      dur: 16 + Math.random() * 18, // 16–34s, faster = more alive
+      delay: -Math.random() * 30,
     });
   }
   return out;

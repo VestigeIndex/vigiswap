@@ -74,10 +74,10 @@
 
 /* === Background token field: hundreds, blurred, hover-focus, click reveals price === */
 .bg-tokens{position:absolute;inset:0;pointer-events:none;overflow:hidden}
-.bg-token{position:absolute;border:0;padding:0;background:transparent;pointer-events:auto;cursor:pointer;animation:tokenDrift var(--dur,60s) ease-in-out var(--delay,0s) infinite alternate;will-change:transform}
-.bg-token img{display:block;width:var(--size,32px);height:var(--size,32px);border-radius:999px;opacity:.2;filter:blur(1.3px) saturate(.92);transition:opacity .2s ease,filter .2s ease,transform .2s ease}
+.bg-token{position:absolute;border:0;padding:0;background:transparent;pointer-events:auto;cursor:pointer;animation:tokenDrift var(--dur,28s) ease-in-out var(--delay,0s) infinite;will-change:transform}
+.bg-token img{display:block;width:var(--size,36px);height:var(--size,36px);border-radius:999px;opacity:.26;filter:blur(1px) saturate(.95);transition:opacity .22s ease,filter .22s ease,transform .22s ease}
 .bg-token:hover,.bg-token.active{z-index:4}
-.bg-token:hover img,.bg-token.active img{opacity:1;filter:none;transform:scale(1.35)}
+.bg-token:hover img,.bg-token.active img{opacity:1;filter:none;transform:scale(1.4);box-shadow:0 10px 26px rgba(32,19,15,.28)}
 .bg-token-price{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%) translateY(4px);display:flex;flex-direction:column;align-items:center;gap:1px;padding:6px 12px;border-radius:12px;background:rgba(26,16,12,.94);color:#fff7e8;box-shadow:0 12px 30px rgba(32,19,15,.3);opacity:0;pointer-events:none;transition:opacity .16s ease,transform .16s ease;white-space:nowrap;z-index:3}
 .bg-token.active .bg-token-price{opacity:1;transform:translateX(-50%) translateY(0)}
 .bg-token-price strong{font-size:11px;font-weight:840;letter-spacing:.02em}
@@ -85,8 +85,14 @@
 .bg-token-change{font-style:normal;font-size:10.5px;font-weight:760;letter-spacing:.01em;opacity:.92}
 .bg-token-change.up{color:#46d6a0}
 .bg-token-change.down{color:#ff8a7a}
-@keyframes tokenDrift{from{transform:translate(0,0)}to{transform:translate(var(--dx,0),var(--dy,0))}}
-@media (max-width:760px){.bg-token:nth-child(n+49){display:none}.bg-token img{opacity:.16}}
+@keyframes tokenDrift{
+  0%{transform:translate(0,calc(var(--dy,0)*-1))}
+  25%{transform:translate(var(--dx,0),0)}
+  50%{transform:translate(0,var(--dy,0))}
+  75%{transform:translate(calc(var(--dx,0)*-1),0)}
+  100%{transform:translate(0,calc(var(--dy,0)*-1))}
+}
+@media (max-width:760px){.bg-token:nth-child(n+25){display:none}.bg-token img{opacity:.2}}
 @media (prefers-reduced-motion:reduce){.bg-token{animation:none}}
 
 /* === Uniswap-style token selector modal === */
