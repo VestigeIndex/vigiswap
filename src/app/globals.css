@@ -65,9 +65,11 @@
 /* === Centered swap stage (swap-first landing) === */
 .shell-swap{display:flex;flex-direction:column;min-height:100vh}
 .shell{pointer-events:none}
-.shell>.topbar,.shell>.swap-stage,.shell>.footer{pointer-events:auto}
-.swap-stage{flex:1;display:flex;align-items:flex-start;justify-content:center;padding:clamp(14px,5vh,64px) 0}
-.swap-stage .swap-panel-wrap{width:min(480px,100%)}
+.shell>.topbar,.shell>.footer{pointer-events:auto}
+/* swap-stage fills the viewport middle but must NOT capture the pointer in its empty area,
+   or the floating tokens behind it become un-hoverable/un-clickable. Only the card re-enables. */
+.swap-stage{flex:1;display:flex;align-items:flex-start;justify-content:center;padding:clamp(14px,5vh,64px) 0;pointer-events:none}
+.swap-stage .swap-panel-wrap{width:min(480px,100%);pointer-events:auto}
 .footer-min{margin-top:auto;padding-top:18px}
 
 /* === Background token field: hundreds, blurred, hover-focus, click reveals price === */
