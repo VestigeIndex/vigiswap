@@ -46,15 +46,25 @@ export type EngineQuote = {
 };
 
 export type OkxExecContext = {
+  /** "swap" = same-chain DEX aggregator; "cross-chain" = bridge aggregator build-tx. */
+  kind: "swap" | "cross-chain";
+  /** Source chainIndex (also the chain whose router we approve). */
   chainIndex: string;
   fromTokenAddress: string; // OKX-formatted (native sentinel for native)
   toTokenAddress: string;
   amount: string;
-  slippagePercent: string; // e.g. "0.5"
+  slippagePercent: string; // e.g. "0.5" — same-chain swap
   fromIsNative: boolean;
   /** Platform-fee params (same wallet/rate as VestigeIndex), omitted when fees disabled. */
   feePercent?: string;
   feeWallet?: string;
+  // ---- cross-chain only ----
+  /** Destination chainIndex (EVM == chainId). */
+  toChainIndex?: string;
+  /** Slippage as a fraction string (e.g. "0.005") — cross-chain build-tx. */
+  slippage?: string;
+  /** Where the bridged tokens land on the destination chain. */
+  receiveAddress?: string;
 };
 
 // OKX's native-asset sentinel (checksum form OKX expects).
@@ -81,6 +91,9 @@ export type BestRouteParams = {
   recipient?: string;
   destAddress?: string;
   crossChain: boolean;
+  /** Whether the DESTINATION chain is EVM. OKX cross-chain only participates for EVM dests;
+   *  non-EVM dests (Bitcoin) route via LI.FI (native BTC). */
+  toIsEvm: boolean;
 };
 
 // ---- LI.FI engine -----------------------------------------------------------------------
@@ -158,6 +171,7 @@ async function okxEngine(p: BestRouteParams): Promise<{ quote: EngineQuote | nul
   if (p.crossChain) return { quote: null };
 
   const ctx: OkxExecContext = {
+    kind: "swap",
     chainIndex: String(p.fromChainId),
     fromTokenAddress: okxToken(p.fromToken),
     toTokenAddress: okxToken(p.toToken),
@@ -204,6 +218,92 @@ async function okxEngine(p: BestRouteParams): Promise<{ quote: EngineQuote | nul
   }
 }
 
+// ---- OKX cross-chain (bridge) engine ----------------------------------------------------
+// Same-chain OKX drops out of cross-chain swaps; this engine covers EVM->EVM bridges so
+// cross-chain is ALSO dual-engine (LI.FI vs OKX). Non-EVM destinations (Bitcoin) are left to
+// LI.FI (native BTC) — OKX's BTC chainIndex is not wired, so we simply don't quote it here.
+
+type OkxXcRouter = {
+  router?: { bridgeName?: string; bridgeId?: string | number };
+  bridgeName?: string;
+  needApprove?: number;
+  toTokenAmount?: string;
+  minimumReceived?: string;
+  estimateGasFee?: string;
+};
+type OkxXcQuoteData = {
+  fromTokenAmount?: string;
+  toTokenAmount?: string;
+  priceImpactPercentage?: string;
+  routerList?: OkxXcRouter[];
+};
+
+function okxXcBridgeName(d: OkxXcQuoteData): string {
+  const r = d.routerList?.[0];
+  return r?.router?.bridgeName || r?.bridgeName || "OKX Bridge";
+}
+
+async function okxCrossChainEngine(
+  p: BestRouteParams,
+): Promise<{ quote: EngineQuote | null; error?: string }> {
+  // Only EVM->EVM bridges; same-chain and non-EVM (BTC) destinations are not OKX cross-chain.
+  if (!p.crossChain || !p.toIsEvm) return { quote: null };
+
+  const slippage = (p.slippageBps / 10_000).toString(); // fraction, e.g. "0.005"
+  const ctx: OkxExecContext = {
+    kind: "cross-chain",
+    chainIndex: String(p.fromChainId),
+    toChainIndex: String(p.toChainId),
+    fromTokenAddress: okxToken(p.fromToken),
+    toTokenAddress: okxToken(p.toToken),
+    amount: p.amountWei,
+    slippagePercent: (p.slippageBps / 100).toString(),
+    slippage,
+    fromIsNative: isNativeAddr(p.fromToken),
+    receiveAddress: p.destAddress || p.recipient,
+    ...(ENABLE_LIFI_FEES ? { feePercent: OKX_FEE_PERCENT, feeWallet: OKX_FEE_WALLET } : {}),
+  };
+
+  const qs = new URLSearchParams({
+    fromChainIndex: ctx.chainIndex,
+    toChainIndex: ctx.toChainIndex as string,
+    fromTokenAddress: ctx.fromTokenAddress,
+    toTokenAddress: ctx.toTokenAddress,
+    amount: ctx.amount,
+    slippage,
+    sort: "0", // 0 = optimal (best net output)
+  });
+  // Apply the same affiliate fee as the other engine for an apples-to-apples comparison.
+  if (ctx.feePercent && ctx.feeWallet) {
+    qs.set("feePercent", ctx.feePercent);
+    qs.set("fromTokenReferrerWalletAddress", ctx.feeWallet);
+  }
+  try {
+    const res = await fetch(`/api/okx/cross-chain/quote?${qs.toString()}`, { cache: "no-store" });
+    if (!res.ok) return { quote: null };
+    const env = (await res.json()) as OkxEnvelope<OkxXcQuoteData>;
+    if (env.code !== "0" || !env.data?.length) return { quote: null, error: env.msg };
+    const d = env.data[0];
+    const out = d.toTokenAmount ?? d.routerList?.[0]?.toTokenAmount;
+    if (!out || out === "0") return { quote: null };
+    const bridge = okxXcBridgeName(d);
+    const impact = d.priceImpactPercentage != null ? Number(d.priceImpactPercentage) : undefined;
+    const quote: EngineQuote = {
+      engine: "OKX",
+      provider: bridge,
+      route: [bridge],
+      outputAmount: out,
+      toAmountMin: d.routerList?.[0]?.minimumReceived,
+      priceImpactPct: Number.isFinite(impact) ? impact : undefined,
+      okx: ctx,
+      raw: d,
+    };
+    return { quote };
+  } catch (e) {
+    return { quote: null, error: (e as Error)?.message };
+  }
+}
+
 // ---- Best-route selection ---------------------------------------------------------------
 
 export type BestRouteResult = {
@@ -220,12 +320,20 @@ function gross(q: EngineQuote): bigint {
   }
 }
 
-/** Quote LI.FI and OKX in parallel and return both plus the higher-output winner. */
+/** Quote LI.FI and OKX in parallel and return both plus the higher-output winner.
+ *  OKX runs its same-chain aggregator OR its cross-chain bridge depending on the trade —
+ *  the two are mutually exclusive, so at most one OKX quote is produced. */
 export async function getBestRoute(p: BestRouteParams): Promise<BestRouteResult> {
-  const [lifi, okx] = await Promise.all([lifiEngine(p), okxEngine(p)]);
-  const engines = [lifi.quote, okx.quote].filter((q): q is EngineQuote => q !== null);
+  const [lifi, okxSame, okxCross] = await Promise.all([
+    lifiEngine(p),
+    okxEngine(p),
+    okxCrossChainEngine(p),
+  ]);
+  const engines = [lifi.quote, okxSame.quote, okxCross.quote].filter(
+    (q): q is EngineQuote => q !== null,
+  );
   if (!engines.length) {
-    return { best: null, engines: [], error: lifi.error || okx.error };
+    return { best: null, engines: [], error: lifi.error || okxSame.error || okxCross.error };
   }
   const best = engines.reduce((a, b) => (gross(b) > gross(a) ? b : a));
   // Sort so the winner is first in the comparison list.
@@ -254,25 +362,43 @@ export async function fetchOkxApprovalSpender(ctx: OkxExecContext): Promise<stri
   return env.data[0].dexContractAddress ?? null;
 }
 
-/** Fetch the executable OKX swap transaction for the connected wallet. */
+/** Fetch the executable OKX transaction for the connected wallet. Same-chain swaps hit the
+ *  DEX aggregator /swap; cross-chain bridges hit /cross-chain/build-tx. Both return a tx on
+ *  the SOURCE chain that the wallet signs. */
 export async function fetchOkxSwapTx(
   ctx: OkxExecContext,
   userWalletAddress: string,
 ): Promise<{ to: string; data: string; value?: string }> {
-  const qs = new URLSearchParams({
-    chainIndex: ctx.chainIndex,
-    amount: ctx.amount,
-    fromTokenAddress: ctx.fromTokenAddress,
-    toTokenAddress: ctx.toTokenAddress,
-    slippagePercent: ctx.slippagePercent,
-    userWalletAddress,
-  });
+  const crossChain = ctx.kind === "cross-chain";
+  const qs = new URLSearchParams(
+    crossChain
+      ? {
+          fromChainIndex: ctx.chainIndex,
+          toChainIndex: ctx.toChainIndex as string,
+          amount: ctx.amount,
+          fromTokenAddress: ctx.fromTokenAddress,
+          toTokenAddress: ctx.toTokenAddress,
+          slippage: ctx.slippage as string,
+          userWalletAddress,
+          receiveAddress: ctx.receiveAddress || userWalletAddress,
+          sort: "0",
+        }
+      : {
+          chainIndex: ctx.chainIndex,
+          amount: ctx.amount,
+          fromTokenAddress: ctx.fromTokenAddress,
+          toTokenAddress: ctx.toTokenAddress,
+          slippagePercent: ctx.slippagePercent,
+          userWalletAddress,
+        },
+  );
   // Apply the platform fee to the SAME wallet/rate as VestigeIndex (OKX affiliate commission).
   if (ctx.feePercent && ctx.feeWallet) {
     qs.set("feePercent", ctx.feePercent);
     qs.set("fromTokenReferrerWalletAddress", ctx.feeWallet);
   }
-  const res = await fetch(`/api/okx/swap?${qs.toString()}`, { cache: "no-store" });
+  const endpoint = crossChain ? "/api/okx/cross-chain/build-tx" : "/api/okx/swap";
+  const res = await fetch(`${endpoint}?${qs.toString()}`, { cache: "no-store" });
   if (!res.ok) throw new Error(`OKX swap build failed (HTTP ${res.status}).`);
   const env = (await res.json()) as OkxEnvelope<OkxSwapData>;
   if (env.code !== "0" || !env.data?.length) throw new Error(env.msg || "OKX swap transaction unavailable.");

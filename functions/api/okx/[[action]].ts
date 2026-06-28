@@ -1,10 +1,15 @@
-// VigiSwap Pages Function: signed gateway to the OKX DEX Aggregator API V6.
+// VigiSwap Pages Function: signed gateway to the OKX DEX API V6.
 // OKX is one of the two EXECUTABLE swap engines (alongside LI.FI). Every call is signed
 // server-side with HMAC-SHA256 over (timestamp + method + requestPath + body) using the
 // OKX credentials kept as Cloudflare secrets — the browser never sees them.
 //
-// Host: https://web3.okx.com   Base path: /api/v6/dex/aggregator/<action>
-// Actions: quote | swap | approve-transaction  (V6 uses `chainIndex`, not `chainId`).
+// Host: https://web3.okx.com
+// Two product surfaces are proxied (both V6, both use `chainIndex`, not `chainId`):
+//   • Same-chain DEX Aggregator — base /api/v6/dex/aggregator
+//       actions: quote | swap | approve-transaction
+//   • Cross-chain (bridge) Aggregator — base /api/v6/dex/cross-chain
+//       actions: cross-chain/quote | cross-chain/build-tx
+//   (Cross-chain approvals reuse the aggregator approve-transaction on the SOURCE chain.)
 type Env = {
   OKX_API_KEY?: string;
   OKX_SECRET_KEY?: string;
@@ -13,11 +18,19 @@ type Env = {
 };
 
 const OKX_HOST = "https://web3.okx.com";
-const BASE = "/api/v6/dex/aggregator";
 
-// Only these actions and query params are forwarded upstream (allow-list).
-const ACTIONS = new Set(["quote", "swap", "approve-transaction"]);
+// action -> upstream request path base (allow-list of the only routes we proxy).
+const ROUTES: Record<string, string> = {
+  "quote": "/api/v6/dex/aggregator/quote",
+  "swap": "/api/v6/dex/aggregator/swap",
+  "approve-transaction": "/api/v6/dex/aggregator/approve-transaction",
+  "cross-chain/quote": "/api/v6/dex/cross-chain/quote",
+  "cross-chain/build-tx": "/api/v6/dex/cross-chain/build-tx",
+};
+
+// Only these query params are forwarded upstream (allow-list, covers both surfaces).
 const ALLOWED_PARAMS = new Set([
+  // same-chain aggregator
   "chainIndex",
   "amount",
   "fromTokenAddress",
@@ -33,6 +46,11 @@ const ALLOWED_PARAMS = new Set([
   "feePercent",
   "fromTokenReferrerWalletAddress",
   "toTokenReferrerWalletAddress",
+  // cross-chain (bridge) aggregator
+  "fromChainIndex",
+  "toChainIndex",
+  "receiveAddress",
+  "sort",
 ]);
 
 const CORS = {
@@ -68,7 +86,8 @@ const onRequest: PagesFunction<Env> = async (context) => {
 
   const actionParam = params?.action;
   const action = Array.isArray(actionParam) ? actionParam.join("/") : String(actionParam || "");
-  if (!ACTIONS.has(action)) {
+  const routeBase = ROUTES[action];
+  if (!routeBase) {
     return new Response(JSON.stringify({ error: `Unknown OKX action: ${action}` }), {
       status: 404,
       headers: { "content-type": "application/json", ...CORS },
@@ -89,7 +108,7 @@ const onRequest: PagesFunction<Env> = async (context) => {
   for (const k of [...incoming.keys()].sort()) {
     if (ALLOWED_PARAMS.has(k)) upstream.set(k, incoming.get(k) as string);
   }
-  const requestPath = `${BASE}/${action}?${upstream.toString()}`;
+  const requestPath = `${routeBase}?${upstream.toString()}`;
   const timestamp = new Date().toISOString();
   const signature = await sign(OKX_SECRET_KEY, `${timestamp}GET${requestPath}`);
 

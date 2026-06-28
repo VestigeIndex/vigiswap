@@ -74,9 +74,10 @@
 .bg-tokens{position:absolute;inset:0;pointer-events:none;overflow:hidden}
 .bg-token{position:absolute;border:0;padding:0;background:transparent;pointer-events:auto;cursor:pointer;animation:tokenDrift var(--dur,60s) ease-in-out var(--delay,0s) infinite alternate;will-change:transform}
 .bg-token img{display:block;width:var(--size,32px);height:var(--size,32px);border-radius:999px;opacity:.2;filter:blur(1.3px) saturate(.92);transition:opacity .2s ease,filter .2s ease,transform .2s ease}
-.bg-token:hover img,.bg-token.active img{opacity:1;filter:none;transform:scale(1.3)}
+.bg-token:hover,.bg-token.active{z-index:4}
+.bg-token:hover img,.bg-token.active img{opacity:1;filter:none;transform:scale(1.35)}
 .bg-token-price{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%) translateY(4px);display:flex;flex-direction:column;align-items:center;gap:1px;padding:6px 12px;border-radius:12px;background:rgba(26,16,12,.94);color:#fff7e8;box-shadow:0 12px 30px rgba(32,19,15,.3);opacity:0;pointer-events:none;transition:opacity .16s ease,transform .16s ease;white-space:nowrap;z-index:3}
-.bg-token.active .bg-token-price{opacity:1;transform:translateX(-50%) translateY(0)}
+.bg-token:hover .bg-token-price,.bg-token.active .bg-token-price{opacity:1;transform:translateX(-50%) translateY(0)}
 .bg-token-price strong{font-size:11px;font-weight:840;letter-spacing:.02em}
 .bg-token-price em{font-style:normal;font-size:13px;font-weight:820;color:#ffd9a0}
 @keyframes tokenDrift{from{transform:translate(0,0)}to{transform:translate(var(--dx,0),var(--dy,0))}}

@@ -2,12 +2,14 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-// Mobile-first animated backdrop: soft gradient orbs + HUNDREDS of REAL crypto token logos
-// drifting slowly and randomly across the whole UI. By default they are blurred and faint;
-// hovering a logo brings it into focus, and CLICKING it reveals that token's live market price.
-// Logos + prices come from a single CoinGecko markets call (top market-cap tokens) — real data,
-// no fakes. The layer sits below the swap card (the card has a higher z-index and re-enables
-// pointer events), so the floating tokens are interactive in open space yet never block a swap.
+// Mobile-first animated backdrop: soft gradient orbs + the TOP 100 REAL crypto tokens drifting
+// slowly across the whole UI. They are laid out on a JITTERED GRID so every logo keeps real
+// breathing room from its neighbours (no clumping), and each drifts only gently within its own
+// cell so the spacing is preserved while it moves. By default they are blurred and faint;
+// HOVERING a logo brings it into focus and reveals that token's live market price. Logos +
+// prices come from a single CoinGecko markets call (top 100 by market cap) — real data, no fakes.
+// The layer sits below the swap card (the card has a higher z-index and re-enables pointer
+// events), so the floating tokens are interactive in open space yet never block a swap.
 
 type Mkt = { id: string; symbol: string; image: string; price: number };
 
@@ -25,7 +27,7 @@ const FALLBACK: Mkt[] = [
   { id: "avalanche-2", symbol: "AVAX", image: "https://assets.coingecko.com/coins/images/12559/small/Avalanche_Circle_RedWhite_Trans.png", price: 0 },
 ];
 
-const MAX = 160; // rendered particles (CSS hides most on mobile)
+const MAX = 100; // top 100 tokens (CSS thins them out on small screens)
 
 function fmtPrice(p: number) {
   if (!Number.isFinite(p) || p <= 0) return "";
@@ -35,27 +37,54 @@ function fmtPrice(p: number) {
 }
 
 type Layout = { top: number; left: number; size: number; dx: number; dy: number; dur: number; delay: number };
-function layout(): Layout {
-  return {
-    top: Math.random() * 95,
-    left: Math.random() * 96,
-    size: 22 + Math.random() * 26,
-    dx: (Math.random() * 2 - 1) * 26,
-    dy: (Math.random() * 2 - 1) * 26,
-    dur: 40 + Math.random() * 70,
-    delay: -Math.random() * 70,
-  };
+
+// Jittered-grid placement: one token per cell + a small random offset, so neighbours never
+// overlap. Drift amplitude is kept well below the cell size so each logo stays inside its own
+// patch of space as it moves — the separation is preserved across the whole animation.
+function buildLayout(count: number): Layout[] {
+  if (count <= 0) return [];
+  // Columns chosen for a ~16:9 viewport so cells are roughly square on screen.
+  const cols = Math.max(1, Math.round(Math.sqrt(count * (16 / 9))));
+  const rows = Math.ceil(count / cols);
+  const cellW = 100 / cols;
+  const cellH = 100 / rows;
+  // Padding keeps logos off the very edges; jitter stays inside the cell's inner area.
+  const padX = cellW * 0.16;
+  const padY = cellH * 0.16;
+  const jitterX = cellW - padX * 2;
+  const jitterY = cellH - padY * 2;
+  // Drift small relative to a cell so tokens never wander into each other.
+  const driftX = Math.min(4, cellW * 0.35);
+  const driftY = Math.min(5, cellH * 0.35);
+
+  const out: Layout[] = [];
+  for (let i = 0; i < count; i++) {
+    const col = i % cols;
+    const row = Math.floor(i / cols);
+    const left = col * cellW + padX + Math.random() * jitterX;
+    const top = row * cellH + padY + Math.random() * jitterY;
+    out.push({
+      left,
+      top,
+      size: 24 + Math.random() * 16,
+      dx: (Math.random() * 2 - 1) * driftX,
+      dy: (Math.random() * 2 - 1) * driftY,
+      dur: 26 + Math.random() * 34,
+      delay: -Math.random() * 40,
+    });
+  }
+  return out;
 }
 
 export function AnimatedBackground() {
   const [coins, setCoins] = useState<Mkt[]>(FALLBACK);
   const [active, setActive] = useState<string | null>(null);
 
-  // One call → logos + live prices for the top market-cap tokens.
+  // One call → logos + live prices for the top 100 market-cap tokens.
   useEffect(() => {
     let on = true;
     fetch(
-      "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=250&page=1&sparkline=false",
+      "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=false",
       { cache: "no-store" },
     )
       .then((r) => (r.ok ? r.json() : null))
@@ -71,11 +100,12 @@ export function AnimatedBackground() {
     return () => { on = false; };
   }, []);
 
-  // Particle positions computed once per coin set (stable across re-renders / clicks).
-  const particles = useMemo(
-    () => coins.slice(0, MAX).map((c) => ({ ...c, l: layout() })),
-    [coins],
-  );
+  // Particle positions computed once per coin set (stable across re-renders / hovers).
+  const particles = useMemo(() => {
+    const picks = coins.slice(0, MAX);
+    const layouts = buildLayout(picks.length);
+    return picks.map((c, i) => ({ ...c, l: layouts[i] }));
+  }, [coins]);
 
   return (
     <div className="animated-bg">
@@ -84,30 +114,34 @@ export function AnimatedBackground() {
       <div className="bg-orb three" aria-hidden="true" />
       <div className="bg-grid" aria-hidden="true" />
       <div className="bg-tokens" aria-hidden="true">
-        {particles.map((p, i) => (
-          <button
-            key={`${p.id}-${i}`}
-            type="button"
-            tabIndex={-1}
-            className={`bg-token${active === `${p.id}-${i}` ? " active" : ""}`}
-            style={{
-              top: `${p.l.top}%`,
-              left: `${p.l.left}%`,
-              ["--size" as string]: `${p.l.size}px`,
-              ["--dx" as string]: `${p.l.dx}vw`,
-              ["--dy" as string]: `${p.l.dy}vh`,
-              ["--dur" as string]: `${p.l.dur}s`,
-              ["--delay" as string]: `${p.l.delay}s`,
-            }}
-            onClick={() => setActive((cur) => (cur === `${p.id}-${i}` ? null : `${p.id}-${i}`))}
-          >
-            <img src={p.image} alt="" loading="lazy" />
-            <span className="bg-token-price">
-              <strong>{p.symbol}</strong>
-              {p.price > 0 ? <em>{fmtPrice(p.price)}</em> : null}
-            </span>
-          </button>
-        ))}
+        {particles.map((p, i) => {
+          const key = `${p.id}-${i}`;
+          return (
+            <button
+              key={key}
+              type="button"
+              tabIndex={-1}
+              className={`bg-token${active === key ? " active" : ""}`}
+              style={{
+                top: `${p.l.top}%`,
+                left: `${p.l.left}%`,
+                ["--size" as string]: `${p.l.size}px`,
+                ["--dx" as string]: `${p.l.dx}vw`,
+                ["--dy" as string]: `${p.l.dy}vh`,
+                ["--dur" as string]: `${p.l.dur}s`,
+                ["--delay" as string]: `${p.l.delay}s`,
+              }}
+              // Hover reveals on desktop (CSS); tap toggles on touch devices.
+              onClick={() => setActive((cur) => (cur === key ? null : key))}
+            >
+              <img src={p.image} alt="" loading="lazy" />
+              <span className="bg-token-price">
+                <strong>{p.symbol}</strong>
+                {p.price > 0 ? <em>{fmtPrice(p.price)}</em> : null}
+              </span>
+            </button>
+          );
+        })}
       </div>
     </div>
   );

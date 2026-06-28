@@ -114,6 +114,7 @@ export function SwapCard({ t }: { t: Messages }) {
           recipient: address,
           destAddress,
           crossChain,
+          toIsEvm: toChain.isEvm,
         });
         if (seq !== quoteSeq.current) return;
         setRoute(result.best);
@@ -129,7 +130,7 @@ export function SwapCard({ t }: { t: Messages }) {
       }
     }, 450);
     return () => clearTimeout(handle);
-  }, [amount, fromToken, toToken, chain.id, chain.lifiId, toChain.id, toChain.lifiId, crossChain, toIsBtc, btcAddress, slippageBps, address, t.quoteUnavailable]);
+  }, [amount, fromToken, toToken, chain.id, chain.lifiId, toChain.id, toChain.lifiId, toChain.isEvm, crossChain, toIsBtc, btcAddress, slippageBps, address, t.quoteUnavailable]);
 
   // wagmi v3: useBalance is native-only; ERC-20 balance comes from balanceOf.
   const fromIsNative = isNative(fromToken.address);
