@@ -166,7 +166,28 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }}
         />
       </head>
-      <body>{children}</body>
+      <body>
+        <a
+          href="https://vigichain.org/testnet"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            display: "block",
+            textAlign: "center",
+            padding: "8px 16px",
+            fontSize: "13px",
+            lineHeight: 1.3,
+            fontWeight: 500,
+            background: "#0a0b0d",
+            color: "#eaf2ff",
+            textDecoration: "none",
+            borderBottom: "1px solid rgba(255,255,255,0.08)",
+          }}
+        >
+          ◇ VigiChain public testnet is live — run a node &amp; join the post-quantum network →
+        </a>
+        {children}
+      </body>
     </html>
   );
 }
