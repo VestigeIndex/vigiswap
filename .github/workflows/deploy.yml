@@ -2,15 +2,17 @@ name: Deploy VigiSwap to Cloudflare Pages
 
 # A deploy is the last step of a gate, not the first step of a pipeline.
 #
-# This workflow used to install with `--legacy-peer-deps --no-audit`, build, and publish — no
-# typecheck, no tests, no dependency audit, and every action floating on a mutable tag (H-09/M-10,
-# audit 2026-08-26). `--legacy-peer-deps` silences the resolver rather than fixing what it is
-# complaining about, `--no-audit` was switching off the one check that was there, and a `@v4` tag
-# is whatever that tag points at on the day it runs — for a workflow holding a Cloudflare API
-# token, that is somebody else's decision about what our secret executes.
+# Main deploys, so that what is on the site and what is in the branch are the same thing. What
+# changed is that nothing reaches Cloudflare until it has passed: a static export does not clear
+# `out/` on rebuild and the Pages asset cache keeps answering for files that no longer exist, so
+# publishing an unverified build is how two builds end up being served at once.
 #
-# Now: install from the lockfile, typecheck, test and audit, and only then build and publish.
-# Every action is pinned to a commit.
+# What the gate does: install from the lockfile, audit, typecheck, test, build. It used to install
+# with `--legacy-peer-deps --no-audit`, build and publish, with every action floating on a mutable
+# tag (H-09/M-10, audit 2026-08-26). `--legacy-peer-deps` silences the resolver rather than
+# resolving what it complains about, and `@v4` is whatever that tag points at on the day it runs —
+# for a workflow holding a Cloudflare API token, that is somebody else's decision about what our
+# secret executes. Every action is pinned to a commit.
 
 on:
   push:
@@ -39,7 +41,7 @@ jobs:
           cache: npm
 
       # `npm ci` installs exactly what the lockfile says. If a peer dependency genuinely conflicts,
-      # that is a thing to resolve in the lockfile, not to wave through on every deploy.
+      # that is a thing to resolve in the lockfile, not to wave through on every build.
       - name: Install
         run: npm ci
 
@@ -60,11 +62,11 @@ jobs:
         with:
           name: vigiswap-out
           if-no-files-found: error
-          retention-days: 1
+          retention-days: 5
           path: out
 
   deploy:
-    # Only what passed. A deploy that builds its own copy is a deploy of something nothing checked.
+    # Only what the gate passed — never a copy this job built for itself.
     needs: verify
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
