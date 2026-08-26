@@ -74,6 +74,13 @@ jobs:
       contents: read
       deployments: write
     steps:
+      # `wrangler pages deploy out` publishes the static export AND compiles `functions/` from the
+      # working directory. A job that downloads only the build artefact has no `functions/`, so it
+      # publishes a site whose entire API is a 404 — which is what the first run of this workflow
+      # did to the live site. The tree is needed here; the BUILD still comes from the gate.
+      - name: Checkout (for functions/ and headers)
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
       - name: Take the verified build
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
