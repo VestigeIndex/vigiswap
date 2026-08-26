@@ -61,6 +61,16 @@ export function SwapCard({ t }: { t: Messages }) {
   const [btcVerdict, setBtcVerdict] = useState<AddressVerdict | null>(null);
   const [slippageBps, setSlippageBps] = useState(50);
   const [refusal, setRefusal] = useState<RouteVerdict | null>(null);
+  // The transaction that has been built and judged, waiting for a second, deliberate press.
+  // "Review swap" used to be the button that signed — the review was a label (H-07).
+  const [prepared, setPrepared] = useState<{
+    verdict: RouteVerdict;
+    to: Address;
+    data?: `0x${string}`;
+    value?: bigint;
+    spender?: string;
+    amountWei: bigint;
+  } | null>(null);
   const [showSettings, setShowSettings] = useState(false);
 
   const crossChain = chain.id !== toChain.id;
@@ -175,6 +185,13 @@ export function SwapCard({ t }: { t: Messages }) {
     };
   }, [toIsBtc, btcAddress]);
 
+  // A review is only a review of the trade it was made for. Anything the user changes — amount,
+  // either token, either chain, slippage, the account, the Bitcoin destination — throws it away,
+  // so the second press can never sign something different from what the first press displayed.
+  useEffect(() => {
+    setPrepared(null);
+  }, [route, amount, fromToken.address, toToken.address, chain.id, toChain.id, slippageBps, address, btcAddress]);
+
   const wrongNetwork = isConnected && Number(chainId) !== chain.id;
   const highImpact = (route?.priceImpactPct ?? 0) < -8;
 
@@ -199,11 +216,14 @@ export function SwapCard({ t }: { t: Messages }) {
     });
   }, [route, fromToken.symbol, fromToken.name, fromToken.address, address]);
 
-  const execute = useCallback(async () => {
+  /// Build the transaction and judge it, and stop there. Nothing is approved and nothing is
+  /// signed by this function: what it produces is something for a person to look at.
+  const prepare = useCallback(async () => {
     if (!route || !address) return;
     setError(null);
     setTxHash(null);
     setRefusal(null);
+    setPrepared(null);
     try {
       if (Number(chainId) !== chain.id) {
         await switchChainAsync({ chainId: chain.id });
@@ -266,6 +286,22 @@ export function SwapCard({ t }: { t: Messages }) {
         return;
       }
 
+      setPrepared({ verdict, to, data, value, spender, amountWei });
+    } catch (e) {
+      const msg = String((e as Error)?.message || "");
+      setStage("idle");
+      if (/reject|denied|cancel|User rejected/i.test(msg)) setError(t.swapRejected);
+      else if (/rpc|network|fetch/i.test(msg)) setError(t.rpcError);
+      else setError(msg || t.txFailed);
+    }
+  }, [route, address, chainId, chain.id, fromToken, toToken, amount, slippageBps, crossChain, switchChainAsync, t]);
+
+  /// Sign what was shown, and only what was shown.
+  const confirm = useCallback(async () => {
+    if (!prepared || !address) return;
+    const { to, data, value, spender, amountWei } = prepared;
+    setError(null);
+    try {
       // Approval (skip for native), for exactly this trade, to exactly the contract that was
       // verified as the one being called.
       if (!isNativeAddress(fromToken.address) && spender) {
@@ -304,13 +340,13 @@ export function SwapCard({ t }: { t: Messages }) {
       else if (/rpc|network|fetch/i.test(msg)) setError(t.rpcError);
       else setError(msg || t.txFailed);
     }
-  }, [route, address, chainId, chain.id, fromToken, toToken, amount, slippageBps, crossChain, switchChainAsync, t]);
+  }, [prepared, address, chain.id, fromToken.address, route, t]);
 
   const explorerUrl = txHash ? `${chain.explorerUrl}/tx/${txHash}` : undefined;
 
-  let primaryLabel = t.reviewSwap;
+  let primaryLabel = prepared ? "Confirm and sign" : t.reviewSwap;
   let primaryDisabled = false;
-  let primaryAction: () => void = () => void execute();
+  let primaryAction: () => void = () => void (prepared ? confirm() : prepare());
 
   if (!PROJECT_ID_VALID) {
     primaryLabel = t.walletProjectMissing;
@@ -455,6 +491,31 @@ export function SwapCard({ t }: { t: Messages }) {
       {/* A refusal is not a failed transaction, and it must not read like one. These are the
           checks the route did not pass, in the words of the check that stopped it, next to the
           call exactly as it would have been signed. */}
+      {prepared ? (
+        <div className="route-review" role="group" aria-label="Review before signing">
+          <strong>Review before signing</strong>
+          <dl>
+            <dt>Contract called</dt>
+            <dd className="mono">{prepared.verdict.canonical.router}</dd>
+            <dt>Reviewed as</dt>
+            <dd>{prepared.verdict.canonical.routerLabel}</dd>
+            <dt>Spender approved</dt>
+            <dd className="mono">{prepared.verdict.canonical.spender || "none"}</dd>
+            <dt>Native value sent</dt>
+            <dd className="mono">{prepared.verdict.canonical.nativeValue}</dd>
+            <dt>Minimum received</dt>
+            <dd className="mono">{prepared.verdict.canonical.minimumReceived || "none"}</dd>
+            <dt>Calldata</dt>
+            <dd className="mono">
+              {prepared.verdict.canonical.calldata.length > 26
+                ? `${prepared.verdict.canonical.calldata.slice(0, 14)}…${prepared.verdict.canonical.calldata.slice(-8)}`
+                : prepared.verdict.canonical.calldata}
+            </dd>
+          </dl>
+          <p>Nothing has been approved or signed yet. The next press does both.</p>
+        </div>
+      ) : null}
+
       {refusal ? (
         <div className="route-refusal" role="alert">
           <strong>This route was refused before signing</strong>

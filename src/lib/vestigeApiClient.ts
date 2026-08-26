@@ -50,6 +50,9 @@ type LifiRoute = {
 };
 
 export type NormalizedRoute = RouteCandidate & {
+  /** How many hops the route has, and whether that is more than this page can carry out. */
+  steps?: number;
+  multistep?: boolean;
   toAmountMin?: string;
   priceImpactPct?: number;
   approvalAddress?: string;
@@ -83,8 +86,17 @@ function normalize(route: LifiRoute): NormalizedRoute {
   const outUsd = Number(route.toAmountUSD ?? 0);
   const netUsd = outUsd ? outUsd - Number(gasUsd ?? 0) - Number(feeUsd ?? 0) : undefined;
   const firstStep = steps[0];
+  // A route of several steps is normalised down to the FIRST step's transaction, and nothing
+  // downstream knows the difference: the page would send step one, watch its receipt succeed, and
+  // report the whole trade as done while the rest of the route never happened (H-07, audit
+  // 2026-08-26). Until every step can be carried out and checked, a multistep route is a price,
+  // not something to execute — so it is carried without a transaction, which is what makes the
+  // execution guard refuse it.
+  const multistep = steps.length > 1;
   return {
     provider: providers[0] ?? "LI.FI",
+    steps: steps.length,
+    multistep,
     outputAmount: route.toAmount ?? "0",
     gasUsd,
     feeUsd,
@@ -92,8 +104,8 @@ function normalize(route: LifiRoute): NormalizedRoute {
     route: providers,
     toAmountMin: route.toAmountMin,
     priceImpactPct: priceImpact(route),
-    approvalAddress: firstStep?.estimate?.approvalAddress,
-    transactionRequest: firstStep?.transactionRequest,
+    approvalAddress: multistep ? undefined : firstStep?.estimate?.approvalAddress,
+    transactionRequest: multistep ? undefined : firstStep?.transactionRequest,
     raw: route,
   };
 }
