@@ -25,16 +25,34 @@ const ROUTES: Record<string, Upstream> = {
   "lifi/quote": { url: "https://li.quest/v1/quote", method: "GET", keyEnv: "LIFI_API_KEY", keyHeader: "x-lifi-api-key", forwardQuery: true, cache: "no-store" },
 };
 
-const CORS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type",
-};
+// `*` made this a public API for anybody who found the URL. It is not a public API: it exists for
+// this site's own pages and it spends this site's provider quota (M-07, audit 2026-08-26). The
+// browser's own page never needs CORS at all — it calls same-origin — so the only origins echoed
+// back are ours, and an unknown origin gets no CORS header and therefore no answer it can read.
+const ALLOWED_ORIGINS = new Set([
+  "https://vigiswap.com",
+  "https://www.vigiswap.com",
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+]);
+
+function corsFor(request: Request): Record<string, string> {
+  const origin = request.headers.get("origin");
+  const headers: Record<string, string> = {
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+    Vary: "Origin",
+  };
+  if (origin && (ALLOWED_ORIGINS.has(origin) || origin.endsWith(".vigiswap.pages.dev"))) {
+    headers["Access-Control-Allow-Origin"] = origin;
+  }
+  return headers;
+}
 
 const onRequest: PagesFunction<Env> = async (context) => {
   const { request, env, params } = context;
   const method = request.method.toUpperCase();
-  if (method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
+  if (method === "OPTIONS") return new Response(null, { status: 204, headers: corsFor(request) });
 
   const pathParam = params?.path;
   const pathArr = Array.isArray(pathParam) ? pathParam : pathParam ? [pathParam] : [];
@@ -43,11 +61,11 @@ const onRequest: PagesFunction<Env> = async (context) => {
   if (!route) {
     return new Response(JSON.stringify({ error: `Unknown upstream: ${key}` }), {
       status: 404,
-      headers: { "content-type": "application/json", ...CORS },
+      headers: { "content-type": "application/json", ...corsFor(request) },
     });
   }
   if (method !== route.method) {
-    return new Response("Method Not Allowed", { status: 405, headers: CORS });
+    return new Response("Method Not Allowed", { status: 405, headers: corsFor(request) });
   }
 
   const target = new URL(route.url);
@@ -71,13 +89,13 @@ const onRequest: PagesFunction<Env> = async (context) => {
       headers: {
         "content-type": upstream.headers.get("content-type") || "application/json",
         "cache-control": upstream.status === 200 ? (route.cache || "no-store") : "no-store",
-        ...CORS,
+        ...corsFor(request),
       },
     });
   } catch (error) {
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : "Upstream request failed" }),
-      { status: 502, headers: { "content-type": "application/json", "cache-control": "no-store", ...CORS } },
+      { status: 502, headers: { "content-type": "application/json", "cache-control": "no-store", ...corsFor(request) } },
     );
   }
 };
