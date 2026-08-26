@@ -310,6 +310,13 @@ export type BestRouteResult = {
   best: EngineQuote | null;
   engines: EngineQuote[];
   error?: string;
+  /**
+   * True when EVERY quote in the comparison supplied an output net of gas and fees, so the
+   * winner really is the best result for the user. False means the comparison fell back to gross
+   * output for at least one engine and "best route" means "largest number before costs" — which
+   * the interface has to say rather than imply.
+   */
+  comparedNetOfCosts?: boolean;
 };
 
 function gross(q: EngineQuote): bigint {
@@ -317,6 +324,22 @@ function gross(q: EngineQuote): bigint {
     return BigInt(q.outputAmount || "0");
   } catch {
     return 0n;
+  }
+}
+
+/**
+ * The number routes are ranked by: output after gas and fees when the engine gives one.
+ *
+ * Ranking on gross output while calling the winner the best route is wrong whenever the engines
+ * differ in cost, which is most of the time (H-07, audit 2026-08-26) — the cheaper route can
+ * easily be the one with the smaller headline number. `selectBestRoute` already compared net;
+ * this path did not, and this path is the one that decides what the user is shown.
+ */
+function comparable(q: EngineQuote): bigint {
+  try {
+    return BigInt(q.estimatedNetOutput || q.outputAmount || "0");
+  } catch {
+    return gross(q);
   }
 }
 
@@ -335,10 +358,13 @@ export async function getBestRoute(p: BestRouteParams): Promise<BestRouteResult>
   if (!engines.length) {
     return { best: null, engines: [], error: lifi.error || okxSame.error || okxCross.error };
   }
-  const best = engines.reduce((a, b) => (gross(b) > gross(a) ? b : a));
+  const best = engines.reduce((a, b) => (comparable(b) > comparable(a) ? b : a));
   // Sort so the winner is first in the comparison list.
-  const sorted = [...engines].sort((a, b) => (gross(b) > gross(a) ? 1 : gross(b) < gross(a) ? -1 : 0));
-  return { best, engines: sorted };
+  const sorted = [...engines].sort((a, b) =>
+    comparable(b) > comparable(a) ? 1 : comparable(b) < comparable(a) ? -1 : 0,
+  );
+  const comparedNetOfCosts = engines.every((q) => Boolean(q.estimatedNetOutput));
+  return { best, engines: sorted, comparedNetOfCosts };
 }
 
 // ---- OKX execution helpers (used by SwapCard when OKX wins) -----------------------------

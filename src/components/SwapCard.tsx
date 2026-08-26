@@ -12,6 +12,12 @@ import { wagmiConfig, PROJECT_ID_VALID, openAppKit } from "@/lib/wallet";
 import { getBestRoute, fetchOkxApprovalSpender, fetchOkxSwapTx, type EngineQuote } from "@/lib/engines";
 import { PLATFORM_FEE_BPS, feeLabel } from "@/lib/fees";
 import { analyzeSwap } from "@/lib/security/securityCore";
+import {
+  buildSwapIntent,
+  isNativeAddress,
+  verifyRouteExecution,
+  type RouteVerdict,
+} from "@/lib/security/routeGuard";
 import { SafeSign } from "./SafeSign";
 import { ChainSelector } from "./ChainSelector";
 import { TokenSelector } from "./TokenSelector";
@@ -50,6 +56,7 @@ export function SwapCard({ t }: { t: Messages }) {
   const [amount, setAmount] = useState("");
   const [btcAddress, setBtcAddress] = useState("");
   const [slippageBps, setSlippageBps] = useState(50);
+  const [refusal, setRefusal] = useState<RouteVerdict | null>(null);
   const [showSettings, setShowSettings] = useState(false);
 
   const crossChain = chain.id !== toChain.id;
@@ -163,10 +170,14 @@ export function SwapCard({ t }: { t: Messages }) {
       approvalAddress: route.approvalAddress,
       unlimitedApproval: false, // we always approve the exact amount
       priceImpactPct: route.priceImpactPct,
-      recipientIsSelf: Boolean(address),
+      // Nothing on this page decodes the route calldata, so where the output goes is NOT
+      // something we know. It was reported as verified whenever a wallet was connected.
+      recipientIsSelf: false,
       routeProvider: `${route.engine} · ${route.provider}`,
-      // OKX builds its tx at execute time; a successful quote means it's executable.
-      hasExecutableTx: route.engine === "OKX" || Boolean(route.transactionRequest?.to),
+      // "Executable" is not a property of the provider name. A route is executable when the
+      // transaction that would be signed passes verifyRouteExecution, which for OKX can only
+      // happen at execute time, because that is when its transaction exists.
+      hasExecutableTx: Boolean((route.transactionRequest as { to?: string } | undefined)?.to),
     });
   }, [route, fromToken.symbol, fromToken.name, fromToken.address, address]);
 
@@ -174,11 +185,22 @@ export function SwapCard({ t }: { t: Messages }) {
     if (!route || !address) return;
     setError(null);
     setTxHash(null);
+    setRefusal(null);
     try {
       if (Number(chainId) !== chain.id) {
         await switchChainAsync({ chainId: chain.id });
       }
       const amountWei = parseUnits(amount, fromToken.decimals);
+      // What the user asked for, recorded here rather than inferred from what came back.
+      const intent = buildSwapIntent({
+        chainId: chain.id,
+        fromToken: fromToken.address,
+        toToken: toToken.address,
+        amount: amountWei.toString(),
+        account: address,
+        slippageBps,
+        crossChain,
+      });
 
       // Resolve the ERC-20 spender to approve. LI.FI exposes it on the route; OKX returns
       // its router from the signed approve-transaction endpoint.
@@ -187,8 +209,48 @@ export function SwapCard({ t }: { t: Messages }) {
         spender = (await fetchOkxApprovalSpender(route.okx)) ?? undefined;
       }
 
-      // Approval (skip for native).
-      if (!isNative(fromToken.address) && spender) {
+      // Build the transaction BEFORE anything is approved or signed. An allowance granted to an
+      // address nobody checked is already a loss, whatever the swap that follows does, so the
+      // approval must not happen until the call it exists for has been judged.
+      let to: Address;
+      let data: `0x${string}` | undefined;
+      let value: bigint | undefined;
+      if (route.engine === "OKX" && route.okx) {
+        const tx = await fetchOkxSwapTx(route.okx, address);
+        to = tx.to as Address;
+        data = (tx.data as `0x${string}`) ?? undefined;
+        value = tx.value ? BigInt(tx.value) : undefined;
+      } else {
+        const tx = route.transactionRequest as
+          | { to?: string; data?: string; value?: string }
+          | undefined;
+        if (!tx || !tx.to) {
+          setStage("idle");
+          setError(t.quoteExpired);
+          return;
+        }
+        to = tx.to as Address;
+        data = (tx.data as `0x${string}`) ?? undefined;
+        value = tx.value ? BigInt(tx.value) : undefined;
+      }
+
+      const verdict = verifyRouteExecution({
+        intent,
+        tx: { to, data, value, chainId: chain.id },
+        spender,
+        outputAmount: route.outputAmount,
+        minimumReceived: route.toAmountMin,
+      });
+      if (!verdict.ok) {
+        setStage("idle");
+        setRefusal(verdict);
+        setError(verdict.reasons[0] ?? "This route was refused before signing.");
+        return;
+      }
+
+      // Approval (skip for native), for exactly this trade, to exactly the contract that was
+      // verified as the one being called.
+      if (!isNativeAddress(fromToken.address) && spender) {
         const allowance = (await readContract(wagmiConfig, {
           address: fromToken.address as Address,
           abi: erc20Abi,
@@ -198,7 +260,6 @@ export function SwapCard({ t }: { t: Messages }) {
         })) as bigint;
         if (allowance < amountWei) {
           setStage("approving");
-          // UTXO Safe Sign: approve the EXACT trade amount, never unlimited (maxUint256).
           const approveHash = await writeContract(wagmiConfig, {
             address: fromToken.address as Address,
             abi: erc20Abi,
@@ -210,29 +271,7 @@ export function SwapCard({ t }: { t: Messages }) {
         }
       }
 
-      // Build the executable transaction for the winning engine.
-      let to: Address;
-      let data: `0x${string}` | undefined;
-      let value: bigint | undefined;
-      if (route.engine === "OKX" && route.okx) {
-        setStage("swapping");
-        const tx = await fetchOkxSwapTx(route.okx, address);
-        to = tx.to as Address;
-        data = (tx.data as `0x${string}`) ?? undefined;
-        value = tx.value ? BigInt(tx.value) : undefined;
-      } else {
-        const tx = route.transactionRequest;
-        if (!tx || !tx.to) {
-          setStage("idle");
-          setError(t.quoteExpired);
-          return;
-        }
-        setStage("swapping");
-        to = tx.to as Address;
-        data = (tx.data as `0x${string}`) ?? undefined;
-        value = tx.value ? BigInt(tx.value as string) : undefined;
-      }
-
+      setStage("swapping");
       const hash = await sendTransaction(wagmiConfig, { to, data, value, chainId: chain.id });
       setTxHash(hash);
       setStage("pending");
@@ -247,7 +286,7 @@ export function SwapCard({ t }: { t: Messages }) {
       else if (/rpc|network|fetch/i.test(msg)) setError(t.rpcError);
       else setError(msg || t.txFailed);
     }
-  }, [route, address, chainId, chain.id, fromToken, amount, switchChainAsync, t]);
+  }, [route, address, chainId, chain.id, fromToken, toToken, amount, slippageBps, crossChain, switchChainAsync, t]);
 
   const explorerUrl = txHash ? `${chain.explorerUrl}/tx/${txHash}` : undefined;
 
@@ -278,6 +317,14 @@ export function SwapCard({ t }: { t: Messages }) {
     primaryDisabled = true;
   } else if (toIsBtc && !btcAddress.trim()) {
     primaryLabel = t.enterBtcAddress;
+    primaryDisabled = true;
+  } else if (refusal) {
+    // Once a route has been refused, the button cannot be the same button that sent it.
+    primaryLabel = t.safeSignBlock;
+    primaryDisabled = true;
+  } else if (crossChain) {
+    // Quote-only: nothing here can verify what happens on the destination chain (H-07).
+    primaryLabel = t.safeSignBlock;
     primaryDisabled = true;
   } else if (safeSign?.decision === "block") {
     primaryLabel = t.safeSignBlock;
@@ -372,6 +419,32 @@ export function SwapCard({ t }: { t: Messages }) {
       ) : null}
 
       {safeSign ? <SafeSign t={t} review={safeSign} /> : null}
+
+      {/* A refusal is not a failed transaction, and it must not read like one. These are the
+          checks the route did not pass, in the words of the check that stopped it, next to the
+          call exactly as it would have been signed. */}
+      {refusal ? (
+        <div className="route-refusal" role="alert">
+          <strong>This route was refused before signing</strong>
+          <ul>
+            {refusal.reasons.map((reason) => (
+              <li key={reason}>{reason}</li>
+            ))}
+          </ul>
+          <dl>
+            <dt>Contract called</dt>
+            <dd className="mono">{refusal.canonical.router}</dd>
+            <dt>Reviewed as</dt>
+            <dd>{refusal.canonical.routerLabel}</dd>
+            <dt>Spender approved</dt>
+            <dd className="mono">{refusal.canonical.spender || "none"}</dd>
+            <dt>Native value sent</dt>
+            <dd className="mono">{refusal.canonical.nativeValue}</dd>
+            <dt>Minimum received</dt>
+            <dd className="mono">{refusal.canonical.minimumReceived || "none"}</dd>
+          </dl>
+        </div>
+      ) : null}
 
       <button className="primary-button" disabled={primaryDisabled} onClick={primaryAction}>{primaryLabel}</button>
 
