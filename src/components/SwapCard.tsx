@@ -12,6 +12,7 @@ import { wagmiConfig, PROJECT_ID_VALID, openAppKit } from "@/lib/wallet";
 import { getBestRoute, fetchOkxApprovalSpender, fetchOkxSwapTx, type EngineQuote } from "@/lib/engines";
 import { PLATFORM_FEE_BPS, feeLabel } from "@/lib/fees";
 import { analyzeSwap } from "@/lib/security/securityCore";
+import { verifyBitcoinAddress, type AddressVerdict } from "@/lib/security/bitcoinAddress";
 import {
   buildSwapIntent,
   isNativeAddress,
@@ -55,6 +56,9 @@ export function SwapCard({ t }: { t: Messages }) {
   const [toToken, setToToken] = useState<TokenConfig>(fromTokens[0]);
   const [amount, setAmount] = useState("");
   const [btcAddress, setBtcAddress] = useState("");
+  // A destination that has been CHECKED, not merely typed: a bridge sends where it is told,
+  // and a mistyped or wrong-network address is gone rather than bounced (H-07).
+  const [btcVerdict, setBtcVerdict] = useState<AddressVerdict | null>(null);
   const [slippageBps, setSlippageBps] = useState(50);
   const [refusal, setRefusal] = useState<RouteVerdict | null>(null);
   const [showSettings, setShowSettings] = useState(false);
@@ -156,6 +160,20 @@ export function SwapCard({ t }: { t: Messages }) {
   });
   const balanceValue = fromIsNative ? nativeBal?.value : (erc20Bal as bigint | undefined);
   const balanceFormatted = balanceValue != null ? formatUnits(balanceValue, fromToken.decimals) : undefined;
+
+  useEffect(() => {
+    if (!toIsBtc || !btcAddress.trim()) {
+      setBtcVerdict(null);
+      return;
+    }
+    let current = true;
+    void verifyBitcoinAddress(btcAddress).then((verdict) => {
+      if (current) setBtcVerdict(verdict);
+    });
+    return () => {
+      current = false;
+    };
+  }, [toIsBtc, btcAddress]);
 
   const wrongNetwork = isConnected && Number(chainId) !== chain.id;
   const highImpact = (route?.priceImpactPct ?? 0) < -8;
@@ -318,6 +336,10 @@ export function SwapCard({ t }: { t: Messages }) {
   } else if (toIsBtc && !btcAddress.trim()) {
     primaryLabel = t.enterBtcAddress;
     primaryDisabled = true;
+  } else if (toIsBtc && (!btcVerdict || !btcVerdict.ok)) {
+    // Checked, and not merely present.
+    primaryLabel = t.enterBtcAddress;
+    primaryDisabled = true;
   } else if (refusal) {
     // Once a route has been refused, the button cannot be the same button that sent it.
     primaryLabel = t.safeSignBlock;
@@ -395,6 +417,16 @@ export function SwapCard({ t }: { t: Messages }) {
           <input id="btc-addr" className="btc-input" placeholder="bc1q…" value={btcAddress} spellCheck={false}
             onChange={(e) => setBtcAddress(e.target.value.trim())} />
           <span className="btc-hint">{t.btcDestHint}</span>
+          {btcVerdict && !btcVerdict.ok ? (
+            <span className="btc-hint btc-bad" role="alert">
+              {btcVerdict.reason}
+            </span>
+          ) : null}
+          {btcVerdict?.ok ? (
+            <span className="btc-hint btc-good">
+              Checked: a valid {btcVerdict.kind} address on {btcVerdict.network}.
+            </span>
+          ) : null}
         </div>
       ) : null}
 
