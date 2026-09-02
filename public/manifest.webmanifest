@@ -4,8 +4,8 @@
   "description": "Swap any crypto at the best rate across 15+ networks and Bitcoin. Non-custodial, multi-chain, low fees.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#07110f",
-  "theme_color": "#F7E7C8",
+  "background_color": "#faf9fc",
+  "theme_color": "#faf9fc",
   "categories": ["finance", "utilities"],
   "lang": "en",
   "icons": [
