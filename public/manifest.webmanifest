@@ -4,11 +4,11 @@
   "description": "Swap any crypto at the best rate across 15+ networks and Bitcoin. Non-custodial, multi-chain, low fees.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#F7E7C8",
+  "background_color": "#07110f",
   "theme_color": "#F7E7C8",
   "categories": ["finance", "utilities"],
   "lang": "en",
   "icons": [
-    { "src": "/logo/vigiswap-mark.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+    { "src": "/logo/vigiswap-mark-v2.png", "sizes": "1254x1254", "type": "image/png", "purpose": "any" }
   ]
 }

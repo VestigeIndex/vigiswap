@@ -52,20 +52,20 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
     alternateLocale: OG_LOCALES,
-    images: [{ url: "/logo/vigiswap-mark.svg", width: 512, height: 512, alt: "VigiSwap — non-custodial crypto swap" }],
+    images: [{ url: "/logo/vigiswap-mark-v2.png", width: 1254, height: 1254, alt: "VigiSwap — non-custodial crypto swap" }],
   },
   twitter: {
     card: "summary_large_image",
     title: TITLE,
     description: "Swap any crypto at the best rate. Non-custodial, multi-chain, lower fees than Uniswap. 16 languages.",
-    images: ["/logo/vigiswap-mark.svg"],
+    images: ["/logo/vigiswap-mark-v2.png"],
   },
   manifest: "/manifest.webmanifest",
-  icons: { icon: "/logo/vigiswap-mark.svg", shortcut: "/logo/vigiswap-mark.svg", apple: "/logo/vigiswap-mark.svg" },
+  icons: { icon: "/logo/vigiswap-mark-v2.png", shortcut: "/logo/vigiswap-mark-v2.png", apple: "/logo/vigiswap-mark-v2.png" },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#F7E7C8",
+  themeColor: "#07110f",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -81,7 +81,7 @@ const JSON_LD = {
       "@id": `${SITE}/#org`,
       name: "VigiSwap",
       url: SITE,
-      logo: `${SITE}/logo/vigiswap-mark.svg`,
+      logo: `${SITE}/logo/vigiswap-mark-v2.png`,
       parentOrganization: {
         "@type": "Organization",
         name: "VestigeIndex",

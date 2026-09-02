@@ -24,7 +24,7 @@ export const appKitMetadata = {
   name: "VigiSwap",
   description: "Fast non-custodial crypto swaps powered by Vestige Index",
   url: SITE_URL,
-  icons: [`${SITE_URL.replace(/\/$/, "")}/logo/vigiswap-mark.svg`],
+  icons: [`${SITE_URL.replace(/\/$/, "")}/logo/vigiswap-mark-v2.png`],
 };
 
 // Building the wagmi adapter/config is safe on the server (no window access).
