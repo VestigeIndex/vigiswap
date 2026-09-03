@@ -18,6 +18,7 @@ import {
   isNativeAddress,
   verifyRouteExecution,
   type RouteVerdict,
+  type SwapIntent,
 } from "@/lib/security/routeGuard";
 import { SafeSign } from "./SafeSign";
 import { ChainSelector } from "./ChainSelector";
@@ -70,6 +71,7 @@ export function SwapCard({ t }: { t: Messages }) {
     value?: bigint;
     spender?: string;
     amountWei: bigint;
+    intent: SwapIntent;
   } | null>(null);
   const [showSettings, setShowSettings] = useState(false);
 
@@ -205,16 +207,17 @@ export function SwapCard({ t }: { t: Messages }) {
       approvalAddress: route.approvalAddress,
       unlimitedApproval: false, // we always approve the exact amount
       priceImpactPct: route.priceImpactPct,
-      // Nothing on this page decodes the route calldata, so where the output goes is NOT
-      // something we know. It was reported as verified whenever a wallet was connected.
-      recipientIsSelf: false,
+      // The receive address is passed into both engines when the quote is requested. We do not
+      // infer it from opaque router calldata; routeGuard verifies the actual transaction later.
+      recipientRequestedForConnectedWallet: Boolean(address) && !toIsBtc && !crossChain,
       routeProvider: `${route.engine} · ${route.provider}`,
       // "Executable" is not a property of the provider name. A route is executable when the
       // transaction that would be signed passes verifyRouteExecution, which for OKX can only
       // happen at execute time, because that is when its transaction exists.
-      hasExecutableTx: Boolean((route.transactionRequest as { to?: string } | undefined)?.to),
+      routeVerified: Boolean(prepared?.verdict.ok),
+      hasExecutableTx: Boolean(prepared?.to || (route.transactionRequest as { to?: string } | undefined)?.to),
     });
-  }, [route, fromToken.symbol, fromToken.name, fromToken.address, address]);
+  }, [route, fromToken.symbol, fromToken.name, fromToken.address, address, toIsBtc, crossChain, prepared]);
 
   /// Build the transaction and judge it, and stop there. Nothing is approved and nothing is
   /// signed by this function: what it produces is something for a person to look at.
@@ -286,7 +289,7 @@ export function SwapCard({ t }: { t: Messages }) {
         return;
       }
 
-      setPrepared({ verdict, to, data, value, spender, amountWei });
+      setPrepared({ verdict, to, data, value, spender, amountWei, intent });
     } catch (e) {
       const msg = String((e as Error)?.message || "");
       setStage("idle");
@@ -298,10 +301,25 @@ export function SwapCard({ t }: { t: Messages }) {
 
   /// Sign what was shown, and only what was shown.
   const confirm = useCallback(async () => {
-    if (!prepared || !address) return;
-    const { to, data, value, spender, amountWei } = prepared;
+    if (!prepared || !address || !route) return;
+    const { to, data, value, spender, amountWei, intent } = prepared;
     setError(null);
     try {
+      // Bind the signer to the same transaction that passed SafeSign and the route guard. A
+      // delayed or mutated quote is refused before any approval or wallet request is created.
+      const refreshedVerdict = verifyRouteExecution({
+        intent,
+        tx: { to, data, value, chainId: chain.id },
+        spender,
+        outputAmount: route.outputAmount,
+        minimumReceived: route.toAmountMin,
+      });
+      if (!refreshedVerdict.ok) {
+        setPrepared(null);
+        setRefusal(refreshedVerdict);
+        setError(refreshedVerdict.reasons[0] ?? "This route changed before signing.");
+        return;
+      }
       // Approval (skip for native), for exactly this trade, to exactly the contract that was
       // verified as the one being called.
       if (!isNativeAddress(fromToken.address) && spender) {

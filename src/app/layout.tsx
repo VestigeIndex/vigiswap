@@ -19,8 +19,8 @@ export const metadata: Metadata = {
   title: { default: TITLE, template: "%s | VigiSwap" },
   description: DESC,
   applicationName: "VigiSwap",
-  authors: [{ name: "UTXO Labs" }, { name: "VestigeIndex", url: "https://vestigeindex.com" }],
-  creator: "VestigeIndex",
+  authors: [{ name: "UTXO Labs" }],
+  creator: "VigiSwap",
   publisher: "UTXO Labs",
   category: "finance",
   keywords: [
@@ -82,13 +82,8 @@ const JSON_LD = {
       name: "VigiSwap",
       url: SITE,
       logo: `${SITE}/logo/vigiswap-mark-v2.png`,
-      parentOrganization: {
-        "@type": "Organization",
-        name: "VestigeIndex",
-        url: "https://vestigeindex.com",
-        parentOrganization: { "@type": "Organization", name: "UTXO Labs" },
-      },
-      sameAs: ["https://vestigeindex.com", "https://utxosuite.com"],
+      parentOrganization: { "@type": "Organization", name: "UTXO Labs" },
+      sameAs: ["https://utxosuite.com"],
     },
     {
       "@type": "WebSite",
@@ -166,28 +161,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }}
         />
       </head>
-      <body>
-        <a
-          href="https://vigichain.org/testnet"
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{
-            display: "block",
-            textAlign: "center",
-            padding: "8px 16px",
-            fontSize: "13px",
-            lineHeight: 1.3,
-            fontWeight: 500,
-            background: "#0a0b0d",
-            color: "#eaf2ff",
-            textDecoration: "none",
-            borderBottom: "1px solid rgba(255,255,255,0.08)",
-          }}
-        >
-          ◇ VigiChain public testnet is live — run a node &amp; join the post-quantum network →
-        </a>
-        {children}
-      </body>
+      <body>{children}</body>
     </html>
   );
 }

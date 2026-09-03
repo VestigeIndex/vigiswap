@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { SafeSignReview } from "@/lib/security/securityCore";
 import type { Messages } from "@/lib/types";
 
@@ -15,6 +15,12 @@ const DECISION_META: Record<SafeSignReview["decision"], { cls: string; key: keyo
 export function SafeSign({ t, review }: { t: Messages; review: SafeSignReview }) {
   const [open, setOpen] = useState(review.decision !== "safe");
   const meta = DECISION_META[review.decision];
+
+  // A new quote can change the decision after this component has mounted. Keep a blocking or
+  // review result visible without overriding a user's choice to collapse an unchanged verdict.
+  useEffect(() => {
+    if (review.decision !== "safe") setOpen(true);
+  }, [review.decision]);
 
   return (
     <div className={`safesign ${meta.cls}`}>

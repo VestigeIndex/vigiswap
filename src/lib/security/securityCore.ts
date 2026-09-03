@@ -29,10 +29,12 @@ export type SafeSignInput = {
   unlimitedApproval: boolean;
   /** Negative = you receive less than you pay (LI.FI fromUSD→toUSD delta). */
   priceImpactPct?: number;
-  /** Whether the swap recipient equals the connected wallet. */
-  recipientIsSelf: boolean;
+  /** The quote was explicitly requested with the connected wallet as its EVM receive address. */
+  recipientRequestedForConnectedWallet: boolean;
   /** Best-route provider/tool label, for transparency. */
   routeProvider?: string;
+  /** The prepared transaction passed the route guard bound to the user's current intent. */
+  routeVerified?: boolean;
   hasExecutableTx: boolean;
 };
 
@@ -49,11 +51,13 @@ export function analyzeSwap(input: SafeSignInput): SafeSignReview {
   // 1. Seed phrase / custody — always enforced by design.
   add("seed", "No seed phrase or private key is ever requested", "pass");
 
-  // 2. Recipient must be the user's own wallet.
-  if (input.recipientIsSelf) {
-    add("recipient", "Swap output goes to your connected wallet", "pass");
+  // 2. The output address is part of the quote request. Router calldata is separately
+  // checked by routeGuard before it can reach the signer, so this never claims to decode
+  // a recipient from arbitrary aggregator payloads.
+  if (input.recipientRequestedForConnectedWallet) {
+    add("recipient", "Quote requested your connected wallet as recipient", "pass");
   } else {
-    add("recipient", "Swap output is NOT your connected wallet", "fail", "The route would send funds elsewhere.", 60);
+    add("recipient", "Quote recipient is not your connected wallet", "fail", "This route cannot be signed from this interface.", 60);
   }
 
   // 3. Approval scope — exact beats unlimited.
@@ -85,8 +89,10 @@ export function analyzeSwap(input: SafeSignInput): SafeSignReview {
   }
 
   // 6. Executable, real route.
-  if (input.hasExecutableTx) {
-    add("route", `Executable best route via ${input.routeProvider || "LI.FI"}`, "pass");
+  if (input.routeVerified) {
+    add("route", `Prepared route verified via ${input.routeProvider || "LI.FI"}`, "pass", "The router, spender, value and minimum received matched the recorded swap intent.");
+  } else if (input.hasExecutableTx) {
+    add("route", "Unsigned route is ready for verification", "warn", "The complete router check runs before the wallet is asked to sign.", 8);
   } else {
     add("route", "No executable transaction in the quote yet", "warn", "Quote may have expired.", 10);
   }

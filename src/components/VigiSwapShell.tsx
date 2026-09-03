@@ -10,10 +10,6 @@ import { WalletProvider } from "./WalletProvider";
 import { WalletButton } from "./WalletButton";
 import { detectLocale, getMessages, type Locale } from "@/lib/i18n";
 
-// Professional/financial surfaces live on vestigeindex.com — VigiSwap is the swap-only entry
-// point. The nav deep-links to the relevant VestigeIndex sections (verified live routes).
-const VESTIGE = "https://www.vestigeindex.com";
-
 export function VigiSwapShell() {
   const [locale, setLocale] = useState<Locale>("en");
 
@@ -38,12 +34,6 @@ export function VigiSwapShell() {
       <div className="shell shell-swap">
         <header className="topbar">
           <BrandMark />
-          <nav className="main-nav" aria-label="Primary">
-            <span className="nav-link active" aria-current="page">Swap</span>
-            <a className="nav-link" href={`${VESTIGE}/trade`}>Trade</a>
-            <a className="nav-link" href={`${VESTIGE}/markets`}>Markets</a>
-            <a className="nav-link" href={`${VESTIGE}/earn`}>Funds</a>
-          </nav>
           <div className="top-actions">
             <a className="icon-button" href="/about" aria-label="About VigiSwap" title="About">
               <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -62,7 +52,7 @@ export function VigiSwapShell() {
         </section>
 
         <footer className="footer footer-min">
-          <span>© 2026 VigiSwap · a VestigeIndex product · UTXO Labs &amp; Huris S&amp;C</span>
+          <span>© 2026 VigiSwap · UTXO Labs &amp; Huris S&amp;C</span>
           <div className="footer-links">
             <a href="/about">About</a>
             <a href="/privacy">{t.privacy}</a>
