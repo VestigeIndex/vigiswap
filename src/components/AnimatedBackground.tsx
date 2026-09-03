@@ -2,33 +2,39 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-// Mobile-first animated backdrop: soft gradient orbs + the TOP 100 REAL crypto tokens drifting
-// slowly across the whole UI. They are laid out on a JITTERED GRID so every logo keeps real
-// breathing room from its neighbours (no clumping), and each drifts only gently within its own
-// cell so the spacing is preserved while it moves. By default they are blurred and faint;
-// HOVERING a logo brings it into focus (de-blur); CLICKING it reveals that token's live market
-// price and its 24h change. Logos, prices and 24h moves come from a single CoinGecko markets
-// call (top 100 by market cap) — real data, no fakes. The layer sits below the swap card (the
-// card has a higher z-index and re-enables pointer events), so the floating tokens are
-// interactive in open space yet never block a swap.
+// A live liquidity field with the major market assets drifting behind the swap surface.
+// CoinGecko remains the source of truth for live price data, while its large artwork keeps
+// every mark crisp when a user brings it into focus.
 
 type Mkt = { id: string; symbol: string; image: string; price: number; change24h: number | null };
 
-// Minimal fallback (still real logos) if the markets endpoint is unavailable.
+// Minimal fallback with high-resolution official CoinGecko artwork.
 const FALLBACK: Mkt[] = [
-  { id: "bitcoin", symbol: "BTC", image: "https://assets.coingecko.com/coins/images/1/small/bitcoin.png", price: 0, change24h: null },
-  { id: "ethereum", symbol: "ETH", image: "https://assets.coingecko.com/coins/images/279/small/ethereum.png", price: 0, change24h: null },
-  { id: "binancecoin", symbol: "BNB", image: "https://assets.coingecko.com/coins/images/825/small/bnb-icon2_2x.png", price: 0, change24h: null },
-  { id: "solana", symbol: "SOL", image: "https://assets.coingecko.com/coins/images/4128/small/solana.png", price: 0, change24h: null },
-  { id: "ripple", symbol: "XRP", image: "https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png", price: 0, change24h: null },
-  { id: "dogecoin", symbol: "DOGE", image: "https://assets.coingecko.com/coins/images/5/small/dogecoin.png", price: 0, change24h: null },
-  { id: "matic-network", symbol: "POL", image: "https://assets.coingecko.com/coins/images/4713/small/polygon.png", price: 0, change24h: null },
-  { id: "chainlink", symbol: "LINK", image: "https://assets.coingecko.com/coins/images/877/small/chainlink-new-logo.png", price: 0, change24h: null },
-  { id: "uniswap", symbol: "UNI", image: "https://assets.coingecko.com/coins/images/12504/small/uni.jpg", price: 0, change24h: null },
-  { id: "avalanche-2", symbol: "AVAX", image: "https://assets.coingecko.com/coins/images/12559/small/Avalanche_Circle_RedWhite_Trans.png", price: 0, change24h: null },
+  { id: "bitcoin", symbol: "BTC", image: "https://assets.coingecko.com/coins/images/1/large/bitcoin.png", price: 0, change24h: null },
+  { id: "ethereum", symbol: "ETH", image: "https://assets.coingecko.com/coins/images/279/large/ethereum.png", price: 0, change24h: null },
+  { id: "tether", symbol: "USDT", image: "https://assets.coingecko.com/coins/images/325/large/Tether.png", price: 0, change24h: null },
+  { id: "usd-coin", symbol: "USDC", image: "https://assets.coingecko.com/coins/images/6319/large/USD_Coin_icon.png", price: 0, change24h: null },
+  { id: "binancecoin", symbol: "BNB", image: "https://assets.coingecko.com/coins/images/825/large/bnb-icon2_2x.png", price: 0, change24h: null },
+  { id: "solana", symbol: "SOL", image: "https://assets.coingecko.com/coins/images/4128/large/solana.png", price: 0, change24h: null },
+  { id: "ripple", symbol: "XRP", image: "https://assets.coingecko.com/coins/images/44/large/xrp-symbol-white-128.png", price: 0, change24h: null },
+  { id: "wrapped-bitcoin", symbol: "WBTC", image: "https://assets.coingecko.com/coins/images/7598/large/wrapped_bitcoin_wbtc.png", price: 0, change24h: null },
+  { id: "chainlink", symbol: "LINK", image: "https://assets.coingecko.com/coins/images/877/large/chainlink-new-logo.png", price: 0, change24h: null },
+  { id: "uniswap", symbol: "UNI", image: "https://assets.coingecko.com/coins/images/12504/large/uni.jpg", price: 0, change24h: null },
+  { id: "avalanche-2", symbol: "AVAX", image: "https://assets.coingecko.com/coins/images/12559/large/Avalanche_Circle_RedWhite_Trans.png", price: 0, change24h: null },
+  { id: "polygon-ecosystem-token", symbol: "POL", image: "https://assets.coingecko.com/coins/images/4713/large/polygon.png", price: 0, change24h: null },
+  { id: "arbitrum", symbol: "ARB", image: "https://assets.coingecko.com/coins/images/16547/large/arb.jpg", price: 0, change24h: null },
+  { id: "optimism", symbol: "OP", image: "https://assets.coingecko.com/coins/images/25244/large/Optimism.png", price: 0, change24h: null },
+  { id: "aave", symbol: "AAVE", image: "https://assets.coingecko.com/coins/images/12645/large/AAVE.png", price: 0, change24h: null },
+  { id: "maker", symbol: "MKR", image: "https://assets.coingecko.com/coins/images/1364/large/Mark_Maker.png", price: 0, change24h: null },
+  { id: "dai", symbol: "DAI", image: "https://assets.coingecko.com/coins/images/9956/large/Badge_Dai.png", price: 0, change24h: null },
+  { id: "the-graph", symbol: "GRT", image: "https://assets.coingecko.com/coins/images/13397/large/Graph_Token.png", price: 0, change24h: null },
 ];
 
-const MAX = 50; // top 50 tokens — fewer, bigger, more visible (CSS thins on small screens)
+function highResolutionImage(image: string) {
+  return image.replace("/thumb/", "/large/").replace("/small/", "/large/");
+}
+
+const MAX = 50;
 
 function fmtPrice(p: number) {
   if (!Number.isFinite(p) || p <= 0) return "";
@@ -93,7 +99,7 @@ export function AnimatedBackground() {
   useEffect(() => {
     let on = true;
     fetch(
-      "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=false&price_change_percentage=24h",
+      "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=250&page=1&sparkline=false&price_change_percentage=24h",
       { cache: "no-store" },
     )
       .then((r) => (r.ok ? r.json() : null))
@@ -106,13 +112,14 @@ export function AnimatedBackground() {
           if (!on || !Array.isArray(data) || !data.length) return;
           setCoins(
             data
-              .filter((d) => d.image)
-              .map((d) => ({
-                id: d.id,
-                symbol: (d.symbol || "").toUpperCase(),
-                image: d.image,
-                price: d.current_price,
-                change24h: d.price_change_percentage_24h ?? null,
+              .filter((token) => token.image)
+              .slice(0, MAX)
+              .map((token) => ({
+                id: token.id,
+                symbol: (token.symbol || "").toUpperCase(),
+                image: highResolutionImage(token.image),
+                price: token.current_price,
+                change24h: token.price_change_percentage_24h ?? null,
               })),
           );
         },
@@ -134,7 +141,7 @@ export function AnimatedBackground() {
       <div className="bg-orb two" aria-hidden="true" />
       <div className="bg-orb three" aria-hidden="true" />
       <div className="bg-grid" aria-hidden="true" />
-      <div className="bg-tokens" aria-hidden="true">
+      <div className="bg-tokens">
         {particles.map((p, i) => {
           const key = `${p.id}-${i}`;
           return (
@@ -142,6 +149,7 @@ export function AnimatedBackground() {
               key={key}
               type="button"
               tabIndex={-1}
+              aria-label={`Show ${p.symbol} market data`}
               className={`bg-token${active === key ? " active" : ""}`}
               style={{
                 top: `${p.l.top}%`,
@@ -172,3 +180,4 @@ export function AnimatedBackground() {
     </div>
   );
 }
+
