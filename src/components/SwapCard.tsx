@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { formatUnits, parseUnits, erc20Abi, type Address } from "viem";
+import { encodeFunctionData, formatUnits, parseUnits, erc20Abi, type Address } from "viem";
 import { useAccount, useBalance, useChainId, useReadContract, useSwitchChain } from "wagmi";
 import { readContract, sendTransaction, writeContract, waitForTransactionReceipt } from "wagmi/actions";
 import { EVM_CHAINS, DEST_CHAINS, type ChainConfig } from "@/lib/chains";
@@ -11,7 +11,12 @@ import { useVigixPrice } from "@/lib/useVigixPrice";
 import { wagmiConfig, PROJECT_ID_VALID, openAppKit } from "@/lib/wallet";
 import { getBestRoute, fetchOkxApprovalSpender, fetchOkxSwapTx, type EngineQuote } from "@/lib/engines";
 import { PLATFORM_FEE_BPS, feeLabel } from "@/lib/fees";
-import { analyzeSwap } from "@/lib/security/securityCore";
+import {
+  analyzeSwap,
+  authorizePreparedTransaction,
+  reviewExactTransaction,
+  type PreparedSafeSign,
+} from "@/lib/security/securityCore";
 import { verifyBitcoinAddress, type AddressVerdict } from "@/lib/security/bitcoinAddress";
 import {
   buildSwapIntent,
@@ -72,6 +77,7 @@ export function SwapCard({ t }: { t: Messages }) {
     spender?: string;
     amountWei: bigint;
     intent: SwapIntent;
+    safeSign: PreparedSafeSign;
   } | null>(null);
   const [showSettings, setShowSettings] = useState(false);
 
@@ -216,8 +222,9 @@ export function SwapCard({ t }: { t: Messages }) {
       // happen at execute time, because that is when its transaction exists.
       routeVerified: Boolean(prepared?.verdict.ok),
       hasExecutableTx: Boolean(prepared?.to || (route.transactionRequest as { to?: string } | undefined)?.to),
+      transaction: prepared ? { to: prepared.to, data: prepared.data, value: prepared.value, chainId: chain.id } : undefined,
     });
-  }, [route, fromToken.symbol, fromToken.name, fromToken.address, address, toIsBtc, crossChain, prepared]);
+  }, [route, fromToken.symbol, fromToken.name, fromToken.address, address, toIsBtc, crossChain, prepared, chain.id]);
 
   /// Build the transaction and judge it, and stop there. Nothing is approved and nothing is
   /// signed by this function: what it produces is something for a person to look at.
@@ -289,7 +296,14 @@ export function SwapCard({ t }: { t: Messages }) {
         return;
       }
 
-      setPrepared({ verdict, to, data, value, spender, amountWei, intent });
+      const safeSign = reviewExactTransaction({ to, data, value, chainId: chain.id }, true);
+      if (safeSign.review.human.requiredAction === "DO_NOT_SIGN") {
+        setStage("idle");
+        setError(safeSign.review.human.summary);
+        return;
+      }
+
+      setPrepared({ verdict, to, data, value, spender, amountWei, intent, safeSign });
     } catch (e) {
       const msg = String((e as Error)?.message || "");
       setStage("idle");
@@ -302,7 +316,7 @@ export function SwapCard({ t }: { t: Messages }) {
   /// Sign what was shown, and only what was shown.
   const confirm = useCallback(async () => {
     if (!prepared || !address || !route) return;
-    const { to, data, value, spender, amountWei, intent } = prepared;
+    const { to, data, value, spender, amountWei, intent, safeSign } = prepared;
     setError(null);
     try {
       // Bind the signer to the same transaction that passed SafeSign and the route guard. A
@@ -320,6 +334,12 @@ export function SwapCard({ t }: { t: Messages }) {
         setError(refreshedVerdict.reasons[0] ?? "This route changed before signing.");
         return;
       }
+      const swapGate = authorizePreparedTransaction(safeSign, { to, data, value, chainId: chain.id });
+      if (!swapGate.mayReachSigner) {
+        setPrepared(null);
+        setError(swapGate.reason);
+        return;
+      }
       // Approval (skip for native), for exactly this trade, to exactly the contract that was
       // verified as the one being called.
       if (!isNativeAddress(fromToken.address) && spender) {
@@ -331,6 +351,27 @@ export function SwapCard({ t }: { t: Messages }) {
           chainId: chain.id,
         })) as bigint;
         if (allowance < amountWei) {
+          const approvalData = encodeFunctionData({
+            abi: erc20Abi,
+            functionName: "approve",
+            args: [spender as Address, amountWei],
+          });
+          const approvalSafeSign = reviewExactTransaction({
+            to: fromToken.address,
+            data: approvalData,
+            value: 0n,
+            chainId: chain.id,
+          }, true);
+          const approvalGate = authorizePreparedTransaction(approvalSafeSign, {
+            to: fromToken.address,
+            data: approvalData,
+            value: 0n,
+            chainId: chain.id,
+          });
+          if (!approvalGate.mayReachSigner) {
+            setError(approvalGate.reason);
+            return;
+          }
           setStage("approving");
           const approveHash = await writeContract(wagmiConfig, {
             address: fromToken.address as Address,
@@ -625,3 +666,4 @@ export function SwapCard({ t }: { t: Messages }) {
     </section>
   );
 }
+

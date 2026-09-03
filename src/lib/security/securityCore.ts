@@ -1,106 +1,145 @@
-// UTXO Security Core — non-visual pre-signing analysis engine for EVM swaps, adapted from
-// VestigeIndex's permissions/approvalRisk + SafeSign model. It evaluates the swap the user
-// is about to sign and returns a verdict + per-check breakdown. It NEVER touches keys or
-// seed phrases; it only inspects the public transaction context. UTXO Safe Sign renders it.
+import {
+  authorizeReviewedRequest,
+  reviewWalletRequest,
+  type SafeSignReview as UtxoSafeSignReview,
+  type WalletRequest,
+} from "@utxo/safesign/core";
 
 export type CheckStatus = "pass" | "warn" | "fail";
 export type SafeSignDecision = "safe" | "review" | "block";
 
-export type SafeSignCheck = {
-  id: string;
-  label: string;
-  status: CheckStatus;
-  detail?: string;
+export type SafeSignCheck = { id: string; label: string; status: CheckStatus; detail?: string };
+export type SafeSignReview = { decision: SafeSignDecision; score: number; checks: SafeSignCheck[] };
+
+export type ExactTransaction = {
+  to?: string;
+  data?: string;
+  value?: string | bigint;
+  chainId: number;
 };
 
-export type SafeSignReview = {
-  decision: SafeSignDecision;
-  score: number; // 0..100
-  checks: SafeSignCheck[];
-};
+export type PreparedSafeSign = { request: WalletRequest; review: UtxoSafeSignReview };
 
 export type SafeSignInput = {
   tokenSymbol: string;
   tokenName?: string;
   isNative: boolean;
-  /** ERC-20 approval target (LI.FI router). Undefined for native sends. */
   approvalAddress?: string;
-  /** true = approve unlimited (maxUint256); false = approve the exact trade amount. */
   unlimitedApproval: boolean;
-  /** Negative = you receive less than you pay (LI.FI fromUSD→toUSD delta). */
   priceImpactPct?: number;
-  /** The quote was explicitly requested with the connected wallet as its EVM receive address. */
   recipientRequestedForConnectedWallet: boolean;
-  /** Best-route provider/tool label, for transparency. */
   routeProvider?: string;
-  /** The prepared transaction passed the route guard bound to the user's current intent. */
   routeVerified?: boolean;
   hasExecutableTx: boolean;
+  transaction?: ExactTransaction;
 };
 
-const SUSPICIOUS = /\b(fake|airdrop|claim|reward|bonus|giveaway|test|scam|voucher)\b/i;
+const POLICY = {
+  blockRawSignatures: true,
+  blockUnlimitedApprovals: true,
+  reviewUnknownContractCalls: true,
+  reviewFirstTimeRecipients: true,
+} as const;
 
-export function analyzeSwap(input: SafeSignInput): SafeSignReview {
-  const checks: SafeSignCheck[] = [];
-  let score = 98;
-  const add = (id: string, label: string, status: CheckStatus, detail?: string, penalty = 0) => {
-    checks.push({ id, label, status, detail });
-    score -= penalty;
-  };
-
-  // 1. Seed phrase / custody — always enforced by design.
-  add("seed", "No seed phrase or private key is ever requested", "pass");
-
-  // 2. The output address is part of the quote request. Router calldata is separately
-  // checked by routeGuard before it can reach the signer, so this never claims to decode
-  // a recipient from arbitrary aggregator payloads.
-  if (input.recipientRequestedForConnectedWallet) {
-    add("recipient", "Quote requested your connected wallet as recipient", "pass");
-  } else {
-    add("recipient", "Quote recipient is not your connected wallet", "fail", "This route cannot be signed from this interface.", 60);
+function asHexQuantity(value: string | bigint | undefined) {
+  if (value == null || value === "") return "0x0";
+  if (typeof value === "string" && value.startsWith("0x")) return value;
+  try {
+    return `0x${BigInt(value).toString(16)}`;
+  } catch {
+    return "0x0";
   }
-
-  // 3. Approval scope — exact beats unlimited.
-  if (input.isNative) {
-    add("approval", "No token approval needed (native asset)", "pass");
-  } else if (!input.approvalAddress) {
-    add("approval", "Spender (router) could not be resolved", "warn", "Re-quote before signing.", 14);
-  } else if (input.unlimitedApproval) {
-    add("approval", "Approval is unlimited", "warn", "UTXO Safe Sign caps approvals to this trade instead.", 18);
-  } else {
-    add("approval", "Approval is capped to this trade amount", "pass");
-  }
-
-  // 4. Token name impersonation signals.
-  if (SUSPICIOUS.test(`${input.tokenSymbol} ${input.tokenName ?? ""}`)) {
-    add("token", "Token naming has impersonation/incentive signals", "warn", "Verify this is the asset you intend.", 20);
-  } else {
-    add("token", "Token naming has no impersonation signals", "pass");
-  }
-
-  // 5. Price impact band.
-  const pi = input.priceImpactPct ?? 0;
-  if (pi <= -15) {
-    add("impact", `Severe price impact (${pi.toFixed(1)}%)`, "fail", "You may lose a large share of value.", 40);
-  } else if (pi <= -8) {
-    add("impact", `High price impact (${pi.toFixed(1)}%)`, "warn", "Output is well below input value.", 18);
-  } else {
-    add("impact", "Price impact within a safe range", "pass");
-  }
-
-  // 6. Executable, real route.
-  if (input.routeVerified) {
-    add("route", `Prepared route verified via ${input.routeProvider || "LI.FI"}`, "pass", "The router, spender, value and minimum received matched the recorded swap intent.");
-  } else if (input.hasExecutableTx) {
-    add("route", "Unsigned route is ready for verification", "warn", "The complete router check runs before the wallet is asked to sign.", 8);
-  } else {
-    add("route", "No executable transaction in the quote yet", "warn", "Quote may have expired.", 10);
-  }
-
-  score = Math.max(1, Math.min(100, score));
-  const hasFail = checks.some((c) => c.status === "fail");
-  const hasWarn = checks.some((c) => c.status === "warn");
-  const decision: SafeSignDecision = hasFail ? "block" : hasWarn ? "review" : "safe";
-
-  return { decision, score, checks };
 }
+
+function chainHex(chainId: number) {
+  return `0x${chainId.toString(16)}`;
+}
+
+function origin() {
+  return typeof window === "undefined" ? "https://vigiswap.com" : window.location.origin;
+}
+
+export function walletRequestForTransaction(transaction: ExactTransaction): WalletRequest {
+  return {
+    method: "eth_sendTransaction",
+    params: [{
+      to: transaction.to,
+      data: transaction.data ?? "0x",
+      value: asHexQuantity(transaction.value),
+      chainId: chainHex(transaction.chainId),
+    }],
+  };
+}
+
+export function reviewExactTransaction(transaction: ExactTransaction, routeVerified: boolean): PreparedSafeSign {
+  const request = walletRequestForTransaction(transaction);
+  const review = reviewWalletRequest(
+    request,
+    {
+      origin: origin(),
+      chainId: chainHex(transaction.chainId),
+      knownContract: routeVerified,
+      verifiedContract: routeVerified,
+      simulation: { status: "unavailable", source: "VigiSwap local route verification" },
+    },
+    POLICY,
+  );
+  return { request, review };
+}
+
+export function authorizePreparedTransaction(prepared: PreparedSafeSign, transaction: ExactTransaction) {
+  return authorizeReviewedRequest(prepared.review.analysis, walletRequestForTransaction(transaction), "APPROVE");
+}
+
+function statusForDecision(decision: UtxoSafeSignReview["analysis"]["decision"]): CheckStatus {
+  if (decision === "BLOCK") return "fail";
+  if (decision === "WARN" || decision === "REVIEW") return "warn";
+  return "pass";
+}
+
+function displayReview(review: UtxoSafeSignReview, input: SafeSignInput): SafeSignReview {
+  const checks: SafeSignCheck[] = [
+    {
+      id: "utxo-sdk",
+      label: review.human.summary,
+      status: statusForDecision(review.analysis.decision),
+      detail: `UTXO SafeSign ${review.analysis.version} analyzes the exact wallet request locally.`,
+    },
+    ...review.human.reasons.map((reason) => ({
+      id: `utxo-${reason.code}`,
+      label: reason.message,
+      // The SDK policy has already combined individual severities into the authoritative
+      // action. A high-severity signal can legitimately require review rather than a block.
+      status: statusForDecision(review.analysis.decision),
+      detail: reason.evidence,
+    })),
+  ];
+
+  if (!input.recipientRequestedForConnectedWallet) {
+    checks.push({ id: "recipient", label: "Quote recipient is not your connected wallet", status: "fail", detail: "This route cannot be signed from this interface." });
+  }
+  if (!input.routeVerified) {
+    checks.push({ id: "route-binding", label: "Route awaits exact transaction verification", status: "warn", detail: "VigiSwap will bind router, spender, amount, chain and minimum received before it can reach the signer." });
+  } else {
+    checks.push({ id: "route-binding", label: `Verified route via ${input.routeProvider || "the selected provider"}`, status: "pass", detail: "The route guard matched the reviewed swap intent before signing." });
+  }
+  if (input.unlimitedApproval) {
+    checks.push({ id: "approval-scope", label: "Unlimited approval requested", status: "fail" });
+  } else if (!input.isNative) {
+    checks.push({ id: "approval-scope", label: "Approval is capped to this trade amount", status: "pass" });
+  }
+
+  const hasFail = checks.some((check) => check.status === "fail");
+  const hasWarn = checks.some((check) => check.status === "warn");
+  const decision: SafeSignDecision = hasFail ? "block" : hasWarn ? "review" : "safe";
+  const risk = review.analysis.risk.overall ?? 0;
+  return { decision, score: Math.max(1, Math.min(100, 100 - risk)), checks };
+}
+
+// VigiSwap owns the route intent checks. UTXO SafeSign owns request analysis and signer gating.
+// This adapter keeps the existing review surface while rendering the actual SDK result.
+export function analyzeSwap(input: SafeSignInput): SafeSignReview {
+  const transaction = input.transaction ?? { to: input.approvalAddress, data: "0x", value: "0x0", chainId: 1 };
+  return displayReview(reviewExactTransaction(transaction, Boolean(input.routeVerified)).review, input);
+}
+
