@@ -52,7 +52,7 @@ export function VigiSwapShell() {
         </section>
 
         <footer className="footer footer-min">
-          <span>© 2026 VigiSwap · UTXO Labs &amp; Huris S&amp;C</span>
+          <span>© 2026 VigiSwap · UTXO Labs Team</span>
           <div className="footer-links">
             <a href="/about">About</a>
             <a href="/privacy">{t.privacy}</a>
