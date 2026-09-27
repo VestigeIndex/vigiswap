@@ -7,7 +7,7 @@ import type { AppKitNetwork } from "@reown/appkit/networks";
 import { createAppKit } from "@reown/appkit/react";
 
 // Full EVM set, mirroring VestigeIndex's supported chains so the lite shares the same
-// universe. Polygon (137) is mandatory because VIGIX lives there. (Bitcoin and Kasplex
+// universe. Polygon (137) remains a standard supported EVM network. (Bitcoin and Kasplex
 // are in the swap catalog but not EVM wallet networks: BTC is UTXO, Kasplex isn't a
 // wagmi network — they participate via the routing engine, not wallet chain-switching.)
 export const networks = [
