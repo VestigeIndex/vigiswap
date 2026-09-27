@@ -68,7 +68,7 @@ jobs:
   deploy:
     # Only what the gate passed — never a copy this job built for itself.
     needs: verify
-    if: github.event_name != 'pull_request'
+    if: always() && needs.verify.result == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: read
