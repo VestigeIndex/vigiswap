@@ -1,4 +1,3 @@
-import { VIGIX } from "./vigix";
 import { COMMON_TOKENS } from "./commonTokens";
 import { chainById } from "./chains";
 
@@ -10,22 +9,11 @@ export type TokenConfig = {
   decimals: number;
   logoURI: string;
   isNative?: boolean;
-  isPlatformToken?: boolean;
 };
 
 const NATIVE_FALLBACK = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
 const FALLBACK_LOGO = "/logo/token-fallback.svg";
 
-// VIGIX is pinned at the top of the Polygon list (real platform token).
-const VIGIX_TOKEN: TokenConfig = {
-  chainId: VIGIX.chainId,
-  address: VIGIX.address,
-  symbol: VIGIX.symbol,
-  name: VIGIX.name,
-  decimals: VIGIX.decimals,
-  logoURI: VIGIX.logoURI,
-  isPlatformToken: true,
-};
 
 // Bitcoin (LI.FI native): token address is the literal "bitcoin", 8 decimals.
 export const BTC_TOKEN: TokenConfig = {
@@ -43,9 +31,6 @@ export const BTC_TOKEN: TokenConfig = {
 export function commonTokensForChain(chainId: number): TokenConfig[] {
   if (chainId === 8332) return [BTC_TOKEN];
   const base = COMMON_TOKENS[chainId] ? [...COMMON_TOKENS[chainId]] : [];
-  if (chainId === VIGIX.chainId) {
-    return [VIGIX_TOKEN, ...base.filter((t) => t.address.toLowerCase() !== VIGIX.address.toLowerCase())];
-  }
   // Every EVM chain at least shows its native asset, even if not in the registry.
   if (!base.length) {
     const chain = chainById(chainId);
