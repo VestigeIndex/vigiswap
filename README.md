@@ -1,32 +1,25 @@
-# VigiSwap Starter
+# VigiSwap
 
-Starter ZIP para `vigiswap.com`: página de swap independiente, premium, moderna, cremosa y colorida, preparada para conectar con las APIs existentes de VestigeIndex.
+VigiSwap is an independent, non-custodial crypto swap interface for `vigiswap.com`.
 
-## Incluye
+## Ownership
+
+VigiSwap is exclusively owned and operated by **UTXO Labs Team**.
+
+## Product
 
 - Next.js App Router.
-- UI tipo swap-only inspirada en la simplicidad de Uniswap, pero no clonada.
-- Fondo animado.
-- Botones modernos.
-- Selector de token/red.
-- VIGIX como token nativo de plataforma.
-- Motor marcado para buscar siempre la mejor ruta.
-- 16 idiomas.
-- Consentimiento de privacidad/cookies.
-- Políticas legales.
-- Logos de promotores: UTXO Labs, UTXOSuite.com.
-- Copyright 2026.
-- Proxy seguro hacia VestigeIndex.
+- Swap-only interface with multi-chain routing.
+- Real route comparison through the configured aggregation engines.
+- EVM networks plus supported cross-chain/native Bitcoin routes.
+- Non-custodial wallet flow: VigiSwap never asks for seed phrases or private keys.
+- UTXO Safe Sign pre-signature review.
+- 16 supported interface languages.
+- Privacy, cookies, terms and risk pages.
+- Cloudflare Pages deployment.
+- Secure server-side provider gateways in `functions/`.
 
-## VIGIX
-
-- Polygon chain ID: `137`
-- Contract: `0xea1989dDc9F7db000347F6Ac14C63fd395B6EDAd`
-- Price source: weighted bonding curve contract.
-- Modelo: VIGIX solo existe cuando se compra/mint y se elimina/burn cuando se vende.
-- No se inventa precio, no se mete FOMO, no se prometen ganancias.
-
-## Instalación
+## Development
 
 ```bash
 npm install
@@ -34,15 +27,12 @@ cp .env.example .env.local
 npm run dev
 ```
 
-## Para Claude Code
+Validation before production:
 
-Pega o usa `CLAUDE_CODE_PROMPT.md`.
-
-La tarea principal de Claude Code será mapear los endpoints reales de VestigeIndex en:
-
-```txt
-src/lib/vestigeApiClient.ts
-src/app/api/vestige/[...path]/route.ts
+```bash
+npm run typecheck
+npm test
+npm run build
 ```
 
-No debe inventar rutas, precios ni swaps.
+The production workflow in `.github/workflows/deploy.yml` deploys `main` to the existing Cloudflare Pages project after verification succeeds.

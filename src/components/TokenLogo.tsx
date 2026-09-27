@@ -5,7 +5,7 @@ import { useState } from "react";
 // Renders a token's REAL logo. We never substitute a fake/placeholder logo image: if the
 // real artwork is missing or fails to load, we show a neutral initials monogram (clearly a
 // generated placeholder, not a counterfeit logo). Real logos come from the token lists
-// (LI.FI / VestigeIndex registry / VIGIX), which already carry original artwork.
+// (LI.FI / VestigeIndex registry), which already carry original artwork.
 
 const FAKE = new Set(["/logo/token-fallback.svg", "/logos/token-placeholder.svg", ""]);
 

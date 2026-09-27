@@ -96,7 +96,7 @@ export function TokenSelector({
                     onClick={() => { onChange(item); setOpen(false); }}>
                     <TokenLogo symbol={item.symbol} logoURI={item.logoURI} size={34} />
                     <div className="token-row-body">
-                      <strong>{item.name}{item.isPlatformToken ? " · VIGIX" : ""}</strong>
+                      <strong>{item.name}</strong>
                       <span>{item.symbol}{!item.isNative && item.address.startsWith("0x") ? ` · ${short(item.address)}` : ""}</span>
                     </div>
                     {selected ? <span className="token-check" aria-hidden="true">✓</span> : null}

@@ -20,11 +20,10 @@ export const legalText = {
     title: "Terms of Use",
     body: [
       "VigiSwap provides a non-custodial interface for swaps routed by Vestige Index APIs.",
-      "VigiSwap (vigiswap.com) is operated by UTXO Labs Team.",
+      "VigiSwap (vigiswap.com) is exclusively owned and operated by UTXO Labs Team.",
       "A platform fee of 0.10% is applied to swaps and accrues to the operator; routing aggregators may also apply their own protocol fees, which are reflected in the quoted route.",
       "Users are responsible for reviewing token addresses, route details, slippage, fees and wallet confirmations.",
       "VigiSwap never guarantees profits, future token prices or market outcomes.",
-      "VIGIX must be presented as a platform token with contract-defined curve pricing, not as speculative investment marketing."
     ]
   },
   risk: {

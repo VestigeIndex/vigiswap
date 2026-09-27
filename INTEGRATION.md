@@ -47,8 +47,6 @@ VestigeIndex is a Next.js **static export** on Cloudflare Pages. Its API is serv
   (already a multi-DEX aggregator that returns the best ordering) as its real source, and
   applies the same fee rule client-side via `bestRoute.ts`. TODO: if VestigeIndex later
   exposes a unified `/api/route` endpoint, switch `getVestigeQuote` to it.
-- **VIGIX price**: read on-chain from the contract bonding curve (`priceAt`/`USDC`) on Polygon
-  (`src/lib/vigix.ts` ABI) — never from CoinGecko/CMC. (Wiring pending — Phase 5.)
 - No `transaction status` server endpoint — use the wallet provider + chain explorer (viem
   `waitForTransactionReceipt`).
 
@@ -66,4 +64,3 @@ integrator config server-side. VigiSwap does not add its own fee on top and does
 ## Env (see `.env.example`)
 
 `VESTIGE_API_BASE=https://www.vestigeindex.com/api` · `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` ·
-VIGIX (chain 137, `0xea1989dDc9F7db000347F6Ac14C63fd395B6EDAd`).

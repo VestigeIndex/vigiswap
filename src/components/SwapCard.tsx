@@ -6,8 +6,6 @@ import { useAccount, useBalance, useChainId, useReadContract, useSwitchChain } f
 import { readContract, sendTransaction, writeContract, waitForTransactionReceipt } from "wagmi/actions";
 import { EVM_CHAINS, DEST_CHAINS, type ChainConfig } from "@/lib/chains";
 import { tokensForChain, type TokenConfig } from "@/lib/tokens";
-import { VIGIX } from "@/lib/vigix";
-import { useVigixPrice } from "@/lib/useVigixPrice";
 import { wagmiConfig, PROJECT_ID_VALID, openAppKit } from "@/lib/wallet";
 import { getBestRoute, fetchOkxApprovalSpender, fetchOkxSwapTx, type EngineQuote } from "@/lib/engines";
 import { PLATFORM_FEE_BPS, feeLabel } from "@/lib/fees";
@@ -50,7 +48,6 @@ export function SwapCard({ t }: { t: Messages }) {
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
   const { switchChainAsync } = useSwitchChain();
-  const vigix = useVigixPrice();
 
   // Cross-chain: `chain` is the FROM/source chain (EVM, signable). `toChain` is the DEST
   // chain (EVM or Bitcoin via LI.FI). Same-chain swap = both equal.
@@ -105,7 +102,7 @@ export function SwapCard({ t }: { t: Messages }) {
   function changeToChain(next: ChainConfig) {
     const nextTokens = tokensForChain(next.id);
     setToChain(next);
-    setToToken(nextTokens.find((x) => x.symbol === "VIGIX") || nextTokens[0]);
+    setToToken(nextTokens.find((x) => x.symbol === "USDC") || nextTokens[0]);
     setRoute(null);
     setEngines([]);
     setError(null);
@@ -636,31 +633,6 @@ export function SwapCard({ t }: { t: Messages }) {
       ) : null}
 
       <TransactionTimeline t={t} stage={stage} explorerUrl={explorerUrl} />
-
-      <div className="vigix-strip">
-        <img src={VIGIX.logoURI} alt="" />
-        <div className="vigix-strip-body">
-          <strong>{t.vigixTitle}</strong>
-          <span>{t.vigixText}</span>
-        </div>
-        <div className="vigix-price" title={t.vigixPriceSource}>
-          {vigix.isLoading && !vigix.data ? (
-            <span className="vigix-price-loading">{t.vigixPriceLoading}</span>
-          ) : vigix.data ? (
-            <>
-              <span className="vigix-price-value">
-                ${vigix.data.priceUsd.toLocaleString(undefined, {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 4,
-                })}
-              </span>
-              <span className="vigix-price-label">{t.vigixPriceLabel}</span>
-            </>
-          ) : (
-            <span className="vigix-price-loading">{t.vigixPriceUnavailable}</span>
-          )}
-        </div>
-      </div>
 
       <p className="disclaimer">{t.disclaimer}</p>
     </section>
