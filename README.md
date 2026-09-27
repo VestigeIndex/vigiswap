@@ -17,6 +17,7 @@ VigiSwap is exclusively owned and operated by **UTXO Labs Team**.
 - 16 supported interface languages.
 - Privacy, cookies, terms and risk pages.
 - Cloudflare Pages deployment.
+- VIGIX remains supported on Polygon as a standard selectable token; it has no promotional placement or platform-token treatment in the interface.
 - Secure server-side provider gateways in `functions/`.
 
 ## Development
