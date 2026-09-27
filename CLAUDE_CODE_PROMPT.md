@@ -20,7 +20,7 @@ No rompas VestigeIndex. Reutiliza sus APIs reales a través del proxy/adaptador 
 - Swap card.
 - Selectores de red/token.
 - Logos/fallbacks precargados.
-- Logos de promotores: UTXO Labs, UTXOSuite.com, Idovio.
+- Logos de promotores: UTXO Labs, UTXOSuite.com.
 - Copyright 2026.
 - VIGIX integrado como token nativo de plataforma.
 - 16 idiomas preparados.
@@ -107,7 +107,7 @@ Mantén:
 - Selección token/red funciona.
 - VIGIX aparece en Polygon.
 - Promotores aparecen abajo.
-- Footer: © 2026 VigiSwap · UTXO Labs.
+- Footer: © 2026 VigiSwap — UTXO Labs Team.
 - Proxy Vestige preparado.
 - La UI no rompe VestigeIndex.
 - No secretos en cliente.
