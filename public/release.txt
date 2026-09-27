@@ -1,4 +1,0 @@
-VigiSwap release
-ownership=UTXO Labs Team
-vigix=standard-supported-token-no-promotion
-release=2026-09-27-utxo-cleanup
