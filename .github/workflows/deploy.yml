@@ -40,12 +40,6 @@ jobs:
           node-version: 22
           cache: npm
 
-      - name: Validate lockfile
-        run: |
-          pwd
-          ls -la package.json package-lock.json
-          node -e "const fs=require('fs'); const x=JSON.parse(fs.readFileSync('package-lock.json','utf8')); console.log('lockfileVersion='+x.lockfileVersion)"
-
       # `npm ci` installs exactly what the lockfile says. If a peer dependency genuinely conflicts,
       # that is a thing to resolve in the lockfile, not to wave through on every build.
       - name: Install
