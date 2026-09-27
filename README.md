@@ -14,7 +14,7 @@ Starter ZIP para `vigiswap.com`: página de swap independiente, premium, moderna
 - 16 idiomas.
 - Consentimiento de privacidad/cookies.
 - Políticas legales.
-- Logos de promotores: UTXO Labs, UTXOSuite.com, Idovio.
+- Logos de promotores: UTXO Labs, UTXOSuite.com.
 - Copyright 2026.
 - Proxy seguro hacia VestigeIndex.
 
