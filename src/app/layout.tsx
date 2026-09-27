@@ -19,16 +19,16 @@ export const metadata: Metadata = {
   title: { default: TITLE, template: "%s | VigiSwap" },
   description: DESC,
   applicationName: "VigiSwap",
-  authors: [{ name: "UTXO Labs" }],
+  authors: [{ name: "UTXO Labs Team" }],
   creator: "VigiSwap",
-  publisher: "UTXO Labs",
+  publisher: "UTXO Labs Team",
   category: "finance",
   keywords: [
     "crypto swap", "token swap", "DEX aggregator", "best swap rate", "cheap crypto swap",
     "non-custodial swap", "cross-chain swap", "bridge crypto", "swap ETH", "swap USDC",
     "swap BTC", "Bitcoin swap", "Uniswap alternative", "1inch alternative", "best DEX",
     "Ethereum swap", "Arbitrum swap", "Base swap", "Polygon swap", "BNB swap", "Solana", "Optimism swap",
-    "swap tokens online", "low fee swap", "DeFi swap", "LI.FI", "OKX DEX", "VigiSwap", "VIGIX",
+    "swap tokens online", "low fee swap", "DeFi swap", "LI.FI", "OKX DEX", "VigiSwap",
     "intercambiar cripto", "échange crypto", "Krypto tauschen", "криптообмен", "加密货币兑换", "暗号資産スワップ",
   ],
   alternates: { canonical: "/" },
@@ -72,7 +72,7 @@ export const viewport: Viewport = {
 };
 
 // Structured data so search engines + AI crawlers understand VigiSwap, its publisher
-// hierarchy (the UTXO Labs conglomerate) and common swap questions (rich results).
+// ownership and common swap questions (rich results).
 const JSON_LD = {
   "@context": "https://schema.org",
   "@graph": [
@@ -82,8 +82,7 @@ const JSON_LD = {
       name: "VigiSwap",
       url: SITE,
       logo: `${SITE}/logo/vigiswap-mark-v2.png`,
-      parentOrganization: { "@type": "Organization", name: "UTXO Labs" },
-      sameAs: ["https://utxosuite.com"],
+      parentOrganization: { "@type": "Organization", name: "UTXO Labs Team" },
     },
     {
       "@type": "WebSite",
