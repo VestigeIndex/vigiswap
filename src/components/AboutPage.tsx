@@ -32,7 +32,6 @@ export function AboutPage() {
           <div className="trust-row">
             <span className="trust-chip">{t.trust1}</span>
             <span className="trust-chip">{t.trust2}</span>
-            <span className="trust-chip">{t.trust3}</span>
             <span className="trust-chip">{t.trust4}</span>
           </div>
           <div className="route-engine-note">
