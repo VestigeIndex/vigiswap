@@ -45,12 +45,6 @@ jobs:
       - name: Install
         run: npm ci
 
-      - name: Reconcile patched transitive versions
-        run: |
-          npm audit fix --package-lock-only || true
-          git diff -- package-lock.json
-          npm ci
-
       - name: Audit dependencies
         run: npm audit --audit-level=high
 
